@@ -3770,12 +3770,18 @@ const net = (() => {
       conn.on('data', data=> onHostReceive(conn, data));
       conn.on('close', ()=> processIncoming({t:'leave', id:conn.peer}));
       updateCountdownUI(remaining, connections.length+1);
+      // a peer that joins mid-countdown needs the current value pushed to it right away,
+      // otherwise its mmCountdown stays frozen at the static "60" from the page markup
+      conn.send({t:'countdown', id:myId, remaining, playerCount:connections.length+1});
     });
     peer.on('error', err=>{ setStatus('Error: ' + err.type); });
     clearInterval(countdownInterval);
     countdownInterval = setInterval(()=>{
       remaining--;
       updateCountdownUI(remaining, connections.length+1);
+      // joiners never ran their own timer — without this broadcast their countdown
+      // never ticked at all and just sat stuck on 60 until matchStart arrived
+      connections.forEach(c=>c.send({t:'countdown', id:myId, remaining, playerCount:connections.length+1}));
       if(remaining<=0){
         clearInterval(countdownInterval);
         connections.forEach(c=>c.send({t:'matchStart', id:myId}));
@@ -3817,7 +3823,7 @@ const net = (() => {
     isHost = false; myId = null; roomCode = null;
     setStatus('');
   }
-  return {quickMatch, sendMessage, disconnect, get myId(){return myId;}, get isHost(){return isHost;}, get roomCode(){return roomCode;}};
+  return {quickMatch, sendMessage, disconnect, updateCountdownUI, get myId(){return myId;}, get isHost(){return isHost;}, get roomCode(){return roomCode;}};
 })();
 
 function getOrCreateRemote(id, name){
@@ -3860,6 +3866,7 @@ function processIncoming(data){
       break;
     }
     case 'leave': { removeRemote(data.id); break; }
+    case 'countdown': { net.updateCountdownUI(data.remaining, data.playerCount); break; }
     case 'matchStart': { beginOnlineMatch(); break; }
   }
 }
@@ -4082,6 +4089,7 @@ function startPlaying(){
 function exitToLobby(){
   clearTimeout(autoLobbyTimer);
   clearInterval(matchTimerInterval);
+  clearInterval(localCountdownInterval);
   document.getElementById('reloadTimerChip').classList.remove('show');
   gameState = 'start';
   mouseDown = false; mouseClickedThisFrame = false; jumpRequest = false; moveInput = {x:0,y:0};
@@ -4118,11 +4126,35 @@ function exitToLobby(){
   refreshBestScoreDisplay();
 }
 
+let localCountdownInterval = null;
+function startLocalCountdown(seconds, title, statusText, onDone){
+  document.getElementById('lobbyTabs').style.display = 'none';
+  document.getElementById('lobbyPreviewCanvas').style.display = 'none';
+  document.getElementById('mainMenuPanel').style.display = 'none';
+  const panel = document.getElementById('onlinePanel');
+  panel.classList.add('show');
+  panel.querySelector('h1').textContent = title;
+  document.getElementById('mmStatusText').textContent = statusText;
+  document.getElementById('mmPlayerCount').textContent = '';
+  let remaining = seconds;
+  document.getElementById('mmCountdown').textContent = remaining;
+  clearInterval(localCountdownInterval);
+  localCountdownInterval = setInterval(()=>{
+    remaining--;
+    document.getElementById('mmCountdown').textContent = Math.max(0, remaining);
+    if(remaining<=0){
+      clearInterval(localCountdownInterval);
+      onDone();
+    }
+  }, 1000);
+}
 document.getElementById('reloadModeBtn').addEventListener('click', ()=>{
   myName = nameInput.value.trim() || 'Player';
   onlineMode = false; gameMode = 'reload';
-  resetGame();
-  startPlaying();
+  startLocalCountdown(60, 'RELOAD (3 LIVES)', 'DROPPING IN…', ()=>{
+    resetGame();
+    startPlaying();
+  });
 });
 function showLobbyTab(tab){
   document.querySelectorAll('.lobbyTab').forEach(btn=> btn.classList.toggle('active', btn.dataset.tab===tab));
@@ -4140,14 +4172,18 @@ document.querySelectorAll('.lobbyTab').forEach(btn=>{
   btn.addEventListener('click', ()=> showLobbyTab(btn.dataset.tab));
 });
 document.getElementById('onlineModeBtn').addEventListener('click', ()=>{
+  clearInterval(localCountdownInterval);
   document.getElementById('lobbyTabs').style.display = 'none';
   document.getElementById('lobbyPreviewCanvas').style.display = 'none';
   document.getElementById('mainMenuPanel').style.display = 'none';
-  document.getElementById('onlinePanel').classList.add('show');
+  const panel = document.getElementById('onlinePanel');
+  panel.classList.add('show');
+  panel.querySelector('h1').textContent = 'BATTLE ROYALE';
   myName = nameInput.value.trim() || 'Player';
   net.quickMatch();
 });
 document.getElementById('backToMenu').addEventListener('click', ()=>{
+  clearInterval(localCountdownInterval);
   net.disconnect();
   showLobbyTab('play');
 });
