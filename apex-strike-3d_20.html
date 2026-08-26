@@ -636,8 +636,11 @@ const AudioSys = (() => {
 ========================================================= */
 const container = document.body;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xaed8f5);
-scene.fog = new THREE.FogExp2(0xc7e6f7, 0.0032);
+const SKY_ZENITH = new THREE.Color(0x3f7fc9);
+const SKY_MID = new THREE.Color(0x8ec3ea);
+const SKY_HORIZON = new THREE.Color(0xdcefff);
+scene.background = SKY_HORIZON.clone();
+scene.fog = new THREE.FogExp2(0xd7ecfb, 0.0024);
 
 const BASE_FOV = isTouch ? 78 : 82;
 const AIM_CONFIG = {
@@ -657,21 +660,23 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8;
+renderer.toneMappingExposure = 1.05;
 container.appendChild(renderer.domElement);
 
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.4, 0.6);
+// Higher threshold keeps bloom on genuinely bright things (sun, muzzle flash, neon fx)
+// instead of glowing out the whole sky/fog, which was washing the scene to near-white.
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.32, 0.35, 0.82);
 composer.addPass(bloomPass);
 
 const tpCamera = new THREE.PerspectiveCamera(BASE_FOV, window.innerWidth/window.innerHeight, 0.1, 1200);
 scene.add(tpCamera);
 
-const hemi = new THREE.HemisphereLight(0xdfefff, 0x8fae7a, 0.5);
+const hemi = new THREE.HemisphereLight(0xdfefff, 0x7a9e6c, 0.55);
 scene.add(hemi);
-const moon = new THREE.DirectionalLight(0xfff3d6, 0.85);
+const moon = new THREE.DirectionalLight(0xfff3d6, 1.15);
 moon.position.set(-80, 110, 40);
 moon.castShadow = true;
 moon.shadow.mapSize.set(isTouch?1024:2048, isTouch?1024:2048);
@@ -687,6 +692,43 @@ scene.add(camera);
 const muzzleLight = new THREE.PointLight(0xffcc66, 0, 8, 2);
 camera.add(muzzleLight);
 
+/* Gradient sky dome + sun disc — replaces the old flat sky color, which
+   bloomed out into a washed, near-white haze across the whole screen. */
+function makeSkyTexture(){
+  const c = document.createElement('canvas'); c.width = 2; c.height = 256;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0, '#'+SKY_ZENITH.getHexString());
+  grad.addColorStop(0.55, '#'+SKY_MID.getHexString());
+  grad.addColorStop(1, '#'+SKY_HORIZON.getHexString());
+  ctx.fillStyle = grad; ctx.fillRect(0,0,2,256);
+  return new THREE.CanvasTexture(c);
+}
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(540, 24, 16),
+  new THREE.MeshBasicMaterial({map:makeSkyTexture(), side:THREE.BackSide, fog:false, depthWrite:false})
+);
+scene.add(skyDome);
+
+function makeSunTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128,128,0,128,128,128);
+  g.addColorStop(0, 'rgba(255,252,240,1)');
+  g.addColorStop(0.22, 'rgba(255,246,215,0.95)');
+  g.addColorStop(0.55, 'rgba(255,235,185,0.22)');
+  g.addColorStop(1, 'rgba(255,235,185,0)');
+  ctx.fillStyle = g; ctx.fillRect(0,0,256,256);
+  return new THREE.CanvasTexture(c);
+}
+const sunDir = new THREE.Vector3(-80,110,40).normalize();
+const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map:makeSunTexture(), color:0xffffff, transparent:true, depthWrite:false,
+  blending:THREE.AdditiveBlending, fog:false
+}));
+sunSprite.scale.set(85,85,1);
+scene.add(sunSprite);
+
 const groundTargets = [];  // meshes the player can stand/walk on top of (raycast-based, handles ramps/stairs/roofs)
 
 /* =========================================================
@@ -698,8 +740,16 @@ function makeGridTexture(color1, color2, size=512, cells=16){
   const c = document.createElement('canvas'); c.width=c.height=size;
   const ctx = c.getContext('2d');
   ctx.fillStyle = color1; ctx.fillRect(0,0,size,size);
-  ctx.strokeStyle = color2; ctx.lineWidth = 2;
   const step = size/cells;
+  // subtle per-panel shading so the slab reads as textured concrete, not a flat tint
+  for(let i=0;i<cells;i++){
+    for(let j=0;j<cells;j++){
+      const shade = (Math.random()-0.5)*14;
+      ctx.fillStyle = shade>=0 ? `rgba(255,255,255,${shade/70})` : `rgba(0,0,0,${-shade/70})`;
+      ctx.fillRect(i*step, j*step, step, step);
+    }
+  }
+  ctx.strokeStyle = color2; ctx.lineWidth = 2;
   for(let i=0;i<=cells;i++){
     ctx.beginPath(); ctx.moveTo(i*step,0); ctx.lineTo(i*step,size); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0,i*step); ctx.lineTo(size,i*step); ctx.stroke();
@@ -709,12 +759,17 @@ function makeGridTexture(color1, color2, size=512, cells=16){
   return tex;
 }
 function makeGrassTexture(){
-  const c = document.createElement('canvas'); c.width=c.height=256;
+  const c = document.createElement('canvas'); c.width=c.height=512;
   const ctx = c.getContext('2d');
-  ctx.fillStyle='#4a7a3a'; ctx.fillRect(0,0,256,256);
-  for(let i=0;i<900;i++){
-    ctx.fillStyle = Math.random()<0.5?'rgba(90,140,60,0.5)':'rgba(60,110,45,0.5)';
-    ctx.fillRect(Math.random()*256, Math.random()*256, 2, 6);
+  ctx.fillStyle='#487637'; ctx.fillRect(0,0,512,512);
+  for(let i=0;i<1400;i++){
+    ctx.fillStyle = 'rgba('+(40+Math.random()*30)+','+(70+Math.random()*35)+','+(30+Math.random()*20)+','+(0.15+Math.random()*0.2)+')';
+    const r = 20+Math.random()*30;
+    ctx.beginPath(); ctx.arc(Math.random()*512, Math.random()*512, r, 0, Math.PI*2); ctx.fill();
+  }
+  for(let i=0;i<3600;i++){
+    ctx.fillStyle = Math.random()<0.5?'rgba(110,165,75,0.55)':'rgba(55,100,42,0.55)';
+    ctx.fillRect(Math.random()*512, Math.random()*512, 2, 6+Math.random()*4);
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -746,12 +801,15 @@ function makeWoodTexture(){
   return tex;
 }
 
-const groundTex = makeGridTexture('#9aa1a6','#c9d0d4', 512, 24);
-groundTex.repeat.set(20,20);
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+const groundTex = makeGridTexture('#8f8f86','#bcbcae', 512, 24);
+groundTex.repeat.set(30,30);
+groundTex.anisotropy = maxAniso;
 const grassTex = makeGrassTexture();
 grassTex.repeat.set(60,60);
+grassTex.anisotropy = maxAniso;
 
-const groundMat = new THREE.MeshStandardMaterial({map:groundTex, roughness:0.85, metalness:0.15});
+const groundMat = new THREE.MeshStandardMaterial({map:groundTex, roughness:0.92, metalness:0.02});
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_SIZE*0.55*2, ARENA_SIZE*2), groundMat);
 ground.rotation.x = -Math.PI/2;
 ground.receiveShadow = true;
@@ -2870,6 +2928,8 @@ function animate(){
   camera.fov = THREE.MathUtils.lerp(camera.fov, aiming ? aimFov : fovTarget, aiming && AIM_CONFIG[currentWeaponKey] && AIM_CONFIG[currentWeaponKey].scope ? 0.12 : 0.18);
   camera.updateProjectionMatrix();
   updateThirdPersonCamera(dt);
+  skyDome.position.copy(renderPass.camera.position);
+  sunSprite.position.copy(sunDir).multiplyScalar(500).add(renderPass.camera.position);
   updateFx(dt);
   updateTracers(dt);
   drawRadar();
