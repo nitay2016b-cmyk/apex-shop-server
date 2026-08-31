@@ -2034,11 +2034,11 @@ function addBuilding(x,z,w,h,d,rotY=0,castShadow=true,windowed=true){
 
 /* City blocks scattered sparsely across the huge map */
 (function generateCity(){
-  const gridN = 11;
+  const gridN = 17;
   const spacing = (ARENA_SIZE*1.6)/gridN;
   for(let i=0;i<gridN;i++){
     for(let j=0;j<gridN;j++){
-      if(Math.random()<0.6) continue;
+      if(Math.random()<0.35) continue;
       const x = -ARENA_SIZE*0.8 + i*spacing + (Math.random()-0.5)*6;
       const z = -ARENA_SIZE*0.8 + j*spacing + (Math.random()-0.5)*6;
       if(Math.abs(x)<10 && Math.abs(z)<10) continue;
@@ -2046,7 +2046,7 @@ function addBuilding(x,z,w,h,d,rotY=0,castShadow=true,windowed=true){
       addBuilding(x,z,w,h,d, Math.random()*Math.PI);
     }
   }
-  for(let i=0;i<70;i++){
+  for(let i=0;i<240;i++){
     const x = (Math.random()-0.5)*ARENA_SIZE*1.7;
     const z = (Math.random()-0.5)*ARENA_SIZE*1.7;
     if(Math.abs(x)<8 && Math.abs(z)<8) continue;
@@ -2122,8 +2122,8 @@ const houseSpots = [];
   }
 })();
 
-/* Forest — instanced trees for performance (2 draw calls for hundreds of trees) */
-const TREE_COUNT = 260;
+/* Forest — instanced trees for performance (2 draw calls no matter how many trees) */
+const TREE_COUNT = 1400;
 const trunkGeo = new THREE.CylinderGeometry(0.22,0.3,2.2,7);
 const leafGeo = new THREE.ConeGeometry(1.6,3.4,8);
 const trunkMat = new THREE.MeshStandardMaterial({color:0x4a3420, roughness:0.9});
@@ -2184,7 +2184,7 @@ function addSupplyCrate(x,z,rotY){
   obstacles.push({mesh:box, box3:new THREE.Box3().setFromObject(box)});
 }
 (function scatterCrates(){
-  const CRATE_COUNT = 45;
+  const CRATE_COUNT = 140;
   let placed = 0, attempts = 0;
   while(placed < CRATE_COUNT && attempts < CRATE_COUNT*8){
     attempts++;
@@ -2197,6 +2197,35 @@ function addSupplyCrate(x,z,rotY){
     addSupplyCrate(x, z, Math.random()*Math.PI*2);
     placed++;
   }
+})();
+
+/* Ground clutter — thousands of tiny colored cubes (pebbles/rubble) scattered across
+   the whole map. One InstancedMesh draw call no matter the count, so this is the
+   cheap way to make the world read as "packed with detail" up close. */
+const RUBBLE_COUNT = 16000;
+const rubbleGeo = new THREE.BoxGeometry(1,1,1);
+const rubbleMat = new THREE.MeshStandardMaterial({color:0xffffff, vertexColors:true, roughness:0.75, metalness:0.1});
+const rubbleInst = new THREE.InstancedMesh(rubbleGeo, rubbleMat, RUBBLE_COUNT);
+rubbleInst.castShadow = false; rubbleInst.receiveShadow = true;
+scene.add(rubbleInst);
+(function scatterRubble(){
+  const dummy = new THREE.Object3D();
+  const col = new THREE.Color();
+  const palette = [0x6b7280, 0x8a7355, 0x5c8a52, 0x4a6a8a, 0xb08a4a, 0x9a4a4a, 0x7d8a4a];
+  for(let i=0;i<RUBBLE_COUNT;i++){
+    const x = (Math.random()-0.5)*ARENA_SIZE*1.9;
+    const z = (Math.random()-0.5)*ARENA_SIZE*1.9;
+    const s = 0.06 + Math.random()*0.18;
+    dummy.position.set(x, s*0.5, z);
+    dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+    dummy.scale.set(s,s,s);
+    dummy.updateMatrix();
+    rubbleInst.setMatrixAt(i, dummy.matrix);
+    col.setHex(palette[Math.floor(Math.random()*palette.length)]);
+    rubbleInst.setColorAt(i, col);
+  }
+  rubbleInst.instanceMatrix.needsUpdate = true;
+  rubbleInst.instanceColor.needsUpdate = true;
 })();
 
 const dustGeo = new THREE.BufferGeometry();
