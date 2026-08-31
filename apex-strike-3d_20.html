@@ -56,6 +56,8 @@
   @keyframes hitflash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.3);}100%{opacity:0;transform:translate(-50%,-50%) scale(0.9);}}
 
   #hud{position:fixed;inset:0;pointer-events:none;z-index:15;font-family:'Segoe UI',Arial,sans-serif;}
+  #hud::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.22) 100%);}
 
   #bottomLeft{position:absolute;left:24px;bottom:22px;display:flex;flex-direction:column;gap:8px;width:280px;}
   .barWrap{background:var(--glass);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;
@@ -1801,14 +1803,27 @@ camera.add(muzzleLight);
 /* Gradient sky dome + sun disc — replaces the old flat sky color, which
    bloomed out into a washed, near-white haze across the whole screen. */
 function makeSkyTexture(){
-  const c = document.createElement('canvas'); c.width = 2; c.height = 256;
+  const w=512, h=256;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d');
-  const grad = ctx.createLinearGradient(0,0,0,256);
+  const grad = ctx.createLinearGradient(0,0,0,h);
   grad.addColorStop(0, '#'+SKY_ZENITH.getHexString());
   grad.addColorStop(0.55, '#'+SKY_MID.getHexString());
   grad.addColorStop(1, '#'+SKY_HORIZON.getHexString());
-  ctx.fillStyle = grad; ctx.fillRect(0,0,2,256);
-  return new THREE.CanvasTexture(c);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+  // a scatter of soft, wide clouds sitting in the upper half of the dome
+  for(let i=0;i<24;i++){
+    const cx = Math.random()*w, cy = h*0.1 + Math.random()*h*0.4;
+    const r = 20+Math.random()*40;
+    const puff = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    puff.addColorStop(0,'rgba(255,255,255,0.5)');
+    puff.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = puff;
+    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.7,r*0.55,0,0,Math.PI*2); ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
 }
 const skyDome = new THREE.Mesh(
   new THREE.SphereGeometry(540, 24, 16),
@@ -1951,11 +1966,38 @@ const buildingMats = [
   new THREE.MeshStandardMaterial({color:0xb7a98f, roughness:0.8, metalness:0.1}),
   new THREE.MeshStandardMaterial({color:0x9fb0a8, roughness:0.75, metalness:0.15}),
 ];
+const buildingFacadeColors = ['#cdd3d8','#b7a98f','#9fb0a8'];
 const trimColors = [0xd94f4f, 0x3f7fd9, 0xd9a63f, 0x4fa87a, 0x8a6fbf]; // muted daytime accent trims, no glow
 
-function addBuilding(x,z,w,h,d,rotY=0,castShadow=true){
+function makeWindowTexture(baseColor){
+  const c = document.createElement('canvas'); c.width=c.height=256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = baseColor; ctx.fillRect(0,0,256,256);
+  const cols=6, rows=8, cw=256/cols, rh=256/rows;
+  for(let r=0;r<rows;r++){
+    for(let col=0; col<cols; col++){
+      const lit = Math.random()<0.32;
+      ctx.fillStyle = lit ? 'rgba(255,222,145,0.95)' : 'rgba(38,44,52,0.55)';
+      ctx.fillRect(col*cw+5, r*rh+5, cw-10, rh-10);
+      if(lit){ ctx.fillStyle='rgba(255,240,200,0.35)'; ctx.fillRect(col*cw+5, r*rh+5, cw-10, 3); }
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+function addBuilding(x,z,w,h,d,rotY=0,castShadow=true,windowed=true){
   const geo = new THREE.BoxGeometry(w,h,d);
-  const mat = buildingMats[Math.floor(Math.random()*buildingMats.length)];
+  let mat;
+  if(windowed){
+    const baseColor = buildingFacadeColors[Math.floor(Math.random()*buildingFacadeColors.length)];
+    const tex = makeWindowTexture(baseColor);
+    tex.repeat.set(Math.max(1,Math.round(w/2)), Math.max(2,Math.round(h/2)));
+    mat = new THREE.MeshStandardMaterial({map:tex, roughness:0.7, metalness:0.12});
+  } else {
+    mat = buildingMats[Math.floor(Math.random()*buildingMats.length)];
+  }
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, h/2, z);
   mesh.rotation.y = rotY;
@@ -1990,7 +2032,7 @@ function addBuilding(x,z,w,h,d,rotY=0,castShadow=true){
     const x = (Math.random()-0.5)*ARENA_SIZE*1.7;
     const z = (Math.random()-0.5)*ARENA_SIZE*1.7;
     if(Math.abs(x)<8 && Math.abs(z)<8) continue;
-    addBuilding(x,z, 1.6+Math.random(), 1.2+Math.random()*0.6, 1.6+Math.random(), Math.random()*Math.PI, false);
+    addBuilding(x,z, 1.6+Math.random(), 1.2+Math.random()*0.6, 1.6+Math.random(), Math.random()*Math.PI, false, false);
   }
 })();
 
@@ -2067,13 +2109,16 @@ const TREE_COUNT = 260;
 const trunkGeo = new THREE.CylinderGeometry(0.22,0.3,2.2,7);
 const leafGeo = new THREE.ConeGeometry(1.6,3.4,8);
 const trunkMat = new THREE.MeshStandardMaterial({color:0x4a3420, roughness:0.9});
-const leafMat = new THREE.MeshStandardMaterial({color:0x1c3d24, roughness:0.85, emissive:0x0a1a0d, emissiveIntensity:0.3});
+const leafMat = new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.85, emissive:0x0a1a0d, emissiveIntensity:0.3, vertexColors:true});
 const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, TREE_COUNT);
 const leafInst = new THREE.InstancedMesh(leafGeo, leafMat, TREE_COUNT);
 trunkInst.castShadow = false; leafInst.castShadow = true;
 scene.add(trunkInst, leafInst);
 (function scatterForest(){
   const dummy = new THREE.Object3D();
+  const leafColor = new THREE.Color();
+  const leafBaseHSL = {h:0, s:0, l:0};
+  new THREE.Color(0x1c3d24).getHSL(leafBaseHSL);
   let placed = 0, attempts = 0;
   while(placed < TREE_COUNT && attempts < TREE_COUNT*6){
     attempts++;
@@ -2087,11 +2132,15 @@ scene.add(trunkInst, leafInst);
     dummy.position.set(x, 1.1*scale, z); dummy.scale.set(scale,scale,scale); dummy.rotation.y = Math.random()*Math.PI;
     dummy.updateMatrix(); trunkInst.setMatrixAt(placed, dummy.matrix);
     dummy.position.set(x, (2.2+1.4)*scale, z); dummy.updateMatrix(); leafInst.setMatrixAt(placed, dummy.matrix);
+    // a bit of hue/lightness jitter so the forest doesn't read as one flat green slab
+    leafColor.setHSL(leafBaseHSL.h + (Math.random()-0.5)*0.06, leafBaseHSL.s + (Math.random()-0.5)*0.15, leafBaseHSL.l + (Math.random()-0.5)*0.12);
+    leafInst.setColorAt(placed, leafColor);
     treeColliders.push({x, z, r:0.4*scale});
     placed++;
   }
   trunkInst.instanceMatrix.needsUpdate = true;
   leafInst.instanceMatrix.needsUpdate = true;
+  leafInst.instanceColor.needsUpdate = true;
 })();
 
 const dustGeo = new THREE.BufferGeometry();
