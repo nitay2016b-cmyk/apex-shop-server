@@ -272,14 +272,14 @@
   #touchLayer{position:fixed;inset:0;z-index:18;display:none;}
   #touchLayer.show{display:block;}
   .joyBase{position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06);
-    border:2px solid rgba(255,255,255,0.18);}
+    border:2px solid rgba(255,255,255,0.18);touch-action:none;pointer-events:auto;}
   #joyLeftBase{left:26px;bottom:26px;}
   .joyStick{position:absolute;width:52px;height:52px;border-radius:50%;background:rgba(0,229,255,0.35);
     border:2px solid rgba(0,229,255,0.7);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
-  #lookZone{position:absolute;right:0;top:0;width:60%;height:100%;}
+  #lookZone{position:absolute;right:0;top:0;width:60%;height:100%;touch-action:none;pointer-events:auto;}
   .touchBtn{position:absolute;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.25);
     color:#fff;font-size:11px;font-weight:800;letter-spacing:1px;display:flex;align-items:center;justify-content:center;
-    pointer-events:auto;text-align:center;line-height:1.1;}
+    pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;text-align:center;line-height:1.1;}
   .touchBtn:active{background:rgba(0,229,255,0.3);border-color:var(--accent);}
   #fireBtn{width:88px;height:88px;right:26px;bottom:120px;background:rgba(255,56,96,0.15);border-color:rgba(255,56,96,0.5);}
   #fireBtn:active{background:rgba(255,56,96,0.4);}
@@ -2034,7 +2034,7 @@ function addBuilding(x,z,w,h,d,rotY=0,castShadow=true,windowed=true){
 
 /* City blocks scattered sparsely across the huge map */
 (function generateCity(){
-  const gridN = 17;
+  const gridN = isTouch ? 17 : 22;
   const spacing = (ARENA_SIZE*1.6)/gridN;
   for(let i=0;i<gridN;i++){
     for(let j=0;j<gridN;j++){
@@ -2046,7 +2046,7 @@ function addBuilding(x,z,w,h,d,rotY=0,castShadow=true,windowed=true){
       addBuilding(x,z,w,h,d, Math.random()*Math.PI);
     }
   }
-  for(let i=0;i<240;i++){
+  for(let i=0;i<(isTouch?240:400);i++){
     const x = (Math.random()-0.5)*ARENA_SIZE*1.7;
     const z = (Math.random()-0.5)*ARENA_SIZE*1.7;
     if(Math.abs(x)<8 && Math.abs(z)<8) continue;
@@ -2123,7 +2123,7 @@ const houseSpots = [];
 })();
 
 /* Forest — instanced trees for performance (2 draw calls no matter how many trees) */
-const TREE_COUNT = 1400;
+const TREE_COUNT = isTouch ? 900 : 2600;
 const trunkGeo = new THREE.CylinderGeometry(0.22,0.3,2.2,7);
 const leafGeo = new THREE.ConeGeometry(1.6,3.4,8);
 const trunkMat = new THREE.MeshStandardMaterial({color:0x4a3420, roughness:0.9});
@@ -2184,7 +2184,7 @@ function addSupplyCrate(x,z,rotY){
   obstacles.push({mesh:box, box3:new THREE.Box3().setFromObject(box)});
 }
 (function scatterCrates(){
-  const CRATE_COUNT = 140;
+  const CRATE_COUNT = isTouch ? 90 : 220;
   let placed = 0, attempts = 0;
   while(placed < CRATE_COUNT && attempts < CRATE_COUNT*8){
     attempts++;
@@ -2202,7 +2202,7 @@ function addSupplyCrate(x,z,rotY){
 /* Ground clutter — thousands of tiny colored cubes (pebbles/rubble) scattered across
    the whole map. One InstancedMesh draw call no matter the count, so this is the
    cheap way to make the world read as "packed with detail" up close. */
-const RUBBLE_COUNT = 16000;
+const RUBBLE_COUNT = isTouch ? 25000 : 70000;
 const rubbleGeo = new THREE.BoxGeometry(1,1,1);
 const rubbleMat = new THREE.MeshStandardMaterial({color:0xffffff, vertexColors:true, roughness:0.75, metalness:0.1});
 const rubbleInst = new THREE.InstancedMesh(rubbleGeo, rubbleMat, RUBBLE_COUNT);
@@ -2409,7 +2409,13 @@ renderer.domElement.addEventListener('wheel', e=>{
   fovTarget = THREE.MathUtils.clamp(fovTarget + (e.deltaY>0?4:-4), 35, BASE_FOV);
 }, {passive:true});
 
-/* ---- Touch controls ---- */
+/* ---- Touch controls ----
+   Pointer Events instead of raw Touch Events: more reliably supported across
+   mobile browsers and embedded webviews, and setPointerCapture keeps drags
+   routed to the right element without a global touchmove listener. Every
+   "down" handler has a matching pointercancel (not just pointerup) so a
+   button can never get stuck "held" if the OS/browser interrupts the
+   gesture mid-touch. */
 let touchLookId = null, touchLookLast = {x:0,y:0};
 let joyLeftId = null, joyLeftOrigin = {x:0,y:0};
 if(isTouch){
@@ -2417,49 +2423,49 @@ if(isTouch){
   const joyStick = document.getElementById('joyLeftStick');
   const lookZone = document.getElementById('lookZone');
 
-  joyBase.addEventListener('touchstart', e=>{
-    const t = e.changedTouches[0];
-    joyLeftId = t.identifier;
+  joyBase.addEventListener('pointerdown', e=>{
+    joyLeftId = e.pointerId;
     const r = joyBase.getBoundingClientRect();
     joyLeftOrigin = {x:r.left+r.width/2, y:r.top+r.height/2};
+    try{ joyBase.setPointerCapture(joyLeftId); }catch(err){}
     e.preventDefault();
   }, {passive:false});
-  window.addEventListener('touchmove', e=>{
-    for(const t of e.changedTouches){
-      if(t.identifier===joyLeftId){
-        let dx = t.clientX-joyLeftOrigin.x, dy = t.clientY-joyLeftOrigin.y;
-        const max=50; const len=Math.hypot(dx,dy);
-        if(len>max){ dx=dx/len*max; dy=dy/len*max; }
-        joyStick.style.transform = `translate(${-50+ (dx/max)*50}%, ${-50+(dy/max)*50}%)`;
-        moveInput.x = dx/max; moveInput.y = -dy/max;
-      }
-      if(t.identifier===touchLookId){
-        const dx = t.clientX - touchLookLast.x, dy = t.clientY - touchLookLast.y;
-        lookDelta.x += dx; lookDelta.y += dy;
-        touchLookLast = {x:t.clientX, y:t.clientY};
-      }
-    }
-  }, {passive:true});
-  window.addEventListener('touchend', e=>{
-    for(const t of e.changedTouches){
-      if(t.identifier===joyLeftId){ joyLeftId=null; moveInput={x:0,y:0}; joyStick.style.transform='translate(-50%,-50%)'; }
-      if(t.identifier===touchLookId){ touchLookId=null; }
-    }
+  joyBase.addEventListener('pointermove', e=>{
+    if(e.pointerId!==joyLeftId) return;
+    let dx = e.clientX-joyLeftOrigin.x, dy = e.clientY-joyLeftOrigin.y;
+    const max=50; const len=Math.hypot(dx,dy);
+    if(len>max){ dx=dx/len*max; dy=dy/len*max; }
+    joyStick.style.transform = `translate(${-50+ (dx/max)*50}%, ${-50+(dy/max)*50}%)`;
+    moveInput.x = dx/max; moveInput.y = -dy/max;
   });
-  lookZone.addEventListener('touchstart', e=>{
+  const resetJoy = e=>{ if(e.pointerId!==joyLeftId) return; joyLeftId=null; moveInput={x:0,y:0}; joyStick.style.transform='translate(-50%,-50%)'; };
+  joyBase.addEventListener('pointerup', resetJoy);
+  joyBase.addEventListener('pointercancel', resetJoy);
+
+  lookZone.addEventListener('pointerdown', e=>{
     if(touchLookId!==null) return;
-    const t = e.changedTouches[0];
-    touchLookId = t.identifier;
-    touchLookLast = {x:t.clientX, y:t.clientY};
+    touchLookId = e.pointerId;
+    touchLookLast = {x:e.clientX, y:e.clientY};
     if(gameState==='playing') mouseClickedThisFrame = true, mouseDown = true;
+    try{ lookZone.setPointerCapture(touchLookId); }catch(err){}
     e.preventDefault();
   }, {passive:false});
-  lookZone.addEventListener('touchend', ()=>{ mouseDown=false; });
+  lookZone.addEventListener('pointermove', e=>{
+    if(e.pointerId!==touchLookId) return;
+    const dx = e.clientX - touchLookLast.x, dy = e.clientY - touchLookLast.y;
+    lookDelta.x += dx; lookDelta.y += dy;
+    touchLookLast = {x:e.clientX, y:e.clientY};
+  });
+  const resetLook = e=>{ if(e.pointerId!==touchLookId) return; touchLookId=null; mouseDown=false; };
+  lookZone.addEventListener('pointerup', resetLook);
+  lookZone.addEventListener('pointercancel', resetLook);
 
   const bindHold = (id, onDown, onUp)=>{
     const el = document.getElementById(id);
-    el.addEventListener('touchstart', e=>{ e.preventDefault(); onDown && onDown(); }, {passive:false});
-    el.addEventListener('touchend', e=>{ e.preventDefault(); onUp && onUp(); }, {passive:false});
+    const up = e=>{ e.preventDefault(); onUp && onUp(); };
+    el.addEventListener('pointerdown', e=>{ e.preventDefault(); onDown && onDown(); }, {passive:false});
+    el.addEventListener('pointerup', up, {passive:false});
+    el.addEventListener('pointercancel', up, {passive:false});
   };
   bindHold('fireBtn', ()=>{ mouseDown=true; mouseClickedThisFrame=true; if(buildMode) placeBuildPiece(); }, ()=>{ mouseDown=false; });
   bindHold('aimBtn', ()=>{ setAiming(true); }, ()=>{ setAiming(false); });
@@ -3496,7 +3502,7 @@ editSquares.forEach((sq,i)=>{
   sq.addEventListener('click', ()=>{ editFocusIdx = i; toggleQuadrant(i); });
 });
 document.getElementById('editDoneBtn').addEventListener('click', closeEditPanel);
-document.getElementById('editBtn').addEventListener('touchstart', e=>{ e.preventDefault(); triggerEdit(); }, {passive:false});
+document.getElementById('editBtn').addEventListener('pointerdown', e=>{ e.preventDefault(); triggerEdit(); }, {passive:false});
 document.addEventListener('keydown', e=>{
   if(editingPiece){
     if(e.code==='KeyE' || e.code==='Escape'){ closeEditPanel(); return; }
