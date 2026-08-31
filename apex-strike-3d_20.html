@@ -2536,7 +2536,7 @@ const player = {
   height: 1.7, radius: 0.5, velocity: new THREE.Vector3(), onGround: true,
   health: 100, maxHealth: 100, armor: 60, maxArmor: 100,
   speed: 6.4, sprintMult: 1.6, jumpForce: 7, alive: true, bobT: 0,
-  wood: 100000, stamina: 100, maxStamina: 100, grenades: 100000, maxGrenades: 100000, lives: 3,
+  wood: 200, stamina: 100, maxStamina: 100, grenades: 3, maxGrenades: 5, lives: 3,
 };
 camera.position.set(0, player.height, 5);
 
@@ -2672,10 +2672,10 @@ function buildWeaponMesh(type){
 }
 
 const WEAPONS = {
-  pistol:  {name:'PISTOL',  dmg:24, fireRate:0.28, mag:12, reserve:100000, spread:0.01, automatic:false, reloadTime:1.0, pellets:1, kind:'pistol'},
-  smg:     {name:'SMG',     dmg:14, fireRate:0.09, mag:30, reserve:100000,spread:0.045,automatic:true,  reloadTime:1.6, pellets:1, kind:'smg'},
-  shotgun: {name:'SHOTGUN', dmg:11, fireRate:0.75, mag:6,  reserve:100000, spread:0.11, automatic:false, reloadTime:2.0, pellets:8, kind:'shotgun'},
-  sniper:  {name:'SNIPER',  dmg:95, fireRate:1.1,  mag:5,  reserve:100000, spread:0.002,automatic:false, reloadTime:2.3, pellets:1, kind:'sniper'},
+  pistol:  {name:'PISTOL',  dmg:24, fireRate:0.28, mag:12, reserve:60, spread:0.01, automatic:false, reloadTime:1.0, pellets:1, kind:'pistol'},
+  smg:     {name:'SMG',     dmg:14, fireRate:0.09, mag:30, reserve:150,spread:0.045,automatic:true,  reloadTime:1.6, pellets:1, kind:'smg'},
+  shotgun: {name:'SHOTGUN', dmg:11, fireRate:0.75, mag:6,  reserve:30, spread:0.11, automatic:false, reloadTime:2.0, pellets:8, kind:'shotgun'},
+  sniper:  {name:'SNIPER',  dmg:95, fireRate:1.1,  mag:5,  reserve:20, spread:0.002,automatic:false, reloadTime:2.3, pellets:1, kind:'sniper'},
 };
 const weaponOrder = ['pistol','smg','shotgun','sniper'];
 const weaponState = {};
@@ -4131,7 +4131,7 @@ function resetGame(){
   document.getElementById('buildBar').classList.remove('show');
   document.getElementById('weaponBar').classList.remove('hide');
 
-  player.health = player.maxHealth; player.armor = 60; player.alive = true; player.wood = 100000; player.stamina = player.maxStamina; player.grenades = 100000;
+  player.health = player.maxHealth; player.armor = 60; player.alive = true; player.wood = 200; player.stamina = player.maxStamina; player.grenades = 3;
   player.lives = RELOAD_MAX_LIVES;
   for(const pk of pickups){ pk.alive = true; pk.mesh.visible = true; pk.respawnTimer = 0; }
   const sp = onlineMode ? randomSpawn() : new THREE.Vector3(0,0,5);
