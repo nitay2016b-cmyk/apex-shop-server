@@ -32,6 +32,8 @@
   #dropBtn:active{transform:scale(0.96);}
   #lobbyHint{color:#7d74a0;font-size:11px;letter-spacing:1px;max-width:400px;text-align:center;}
   #lobbyLoading{color:#a99fd6;font-size:12px;letter-spacing:2px;display:none;}
+  #rotateHint{display:none;color:var(--gold);font-size:11px;letter-spacing:2px;text-align:center;}
+  @media (pointer:coarse) and (orientation:portrait){ #rotateHint{display:block;} }
 
   /* ===== HUD ===== */
   #hud{position:fixed;inset:0;pointer-events:none;z-index:15;display:none;}
@@ -179,6 +181,7 @@
   <div id="lobbyHint">WASD move · Mouse look · Click to fire · Space jump · Shift sprint · Ctrl crouch<br>
     B build mode · E interact/harvest · 1-4 weapons · Q switch build piece</div>
   <div id="lobbyLoading">GENERATING ISLAND…</div>
+  <div id="rotateHint">↻ ROTATE YOUR PHONE TO LANDSCAPE FOR THE BEST EXPERIENCE</div>
 </div>
 
 <div id="countdownWrap"><div id="countdownNum">3</div></div>
@@ -275,6 +278,12 @@
 "use strict";
 
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+const LOW_QUALITY = isTouch;
+const TREE_COUNT = LOW_QUALITY ? 110 : 210;
+const ROCK_COUNT = LOW_QUALITY ? 40 : 70;
+const PICKUP_COUNT = LOW_QUALITY ? 30 : 50;
+const CLOUD_COUNT = LOW_QUALITY ? 14 : 26;
+const SHADOW_MAP_SIZE = LOW_QUALITY ? 1024 : 2048;
 
 /* ============================================================
    NOISE / TERRAIN
@@ -315,6 +324,7 @@ const camera = new THREE.PerspectiveCamera(68, window.innerWidth/window.innerHei
 const renderer = new THREE.WebGLRenderer({antialias:!isTouch, powerPreference:"high-performance"});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch?1.5:2));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.domElement.style.touchAction = 'none';
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -324,7 +334,8 @@ document.body.appendChild(renderer.domElement);
 
 const composer = new THREE.EffectComposer(renderer);
 composer.addPass(new THREE.RenderPass(scene, camera));
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.55, 0.72);
+const bloomRes = LOW_QUALITY ? new THREE.Vector2(window.innerWidth*0.6, window.innerHeight*0.6) : new THREE.Vector2(window.innerWidth, window.innerHeight);
+const bloomPass = new THREE.UnrealBloomPass(bloomRes, 0.55, 0.55, 0.72);
 composer.addPass(bloomPass);
 
 /* ============================================================
@@ -334,7 +345,7 @@ const hemi = new THREE.HemisphereLight(0xbcd8ff, 0x6a5a3a, 0.65);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffe6c2, 1.35);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048,2048);
+sun.shadow.mapSize.set(SHADOW_MAP_SIZE,SHADOW_MAP_SIZE);
 sun.shadow.camera.left=-55; sun.shadow.camera.right=55; sun.shadow.camera.top=55; sun.shadow.camera.bottom=-55;
 sun.shadow.camera.near=1; sun.shadow.camera.far=220;
 sun.shadow.bias = -0.0015;
@@ -369,12 +380,12 @@ scene.add(new THREE.Mesh(new THREE.SphereGeometry(900,32,32), skyMat));
 
 const cloudGroup = new THREE.Group(); scene.add(cloudGroup);
 const cloudMat = new THREE.MeshStandardMaterial({color:0xffffff, roughness:1, transparent:true, opacity:0.85, emissive:0x554466, emissiveIntensity:0.08});
-for(let i=0;i<26;i++){
+for(let i=0;i<CLOUD_COUNT;i++){
   const cluster = new THREE.Group();
   const n = 3+Math.floor(Math.random()*4);
   for(let j=0;j<n;j++){
     const s = 8+Math.random()*14;
-    const m = new THREE.Mesh(new THREE.SphereGeometry(s,7,6), cloudMat);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(s,LOW_QUALITY?5:7,LOW_QUALITY?4:6), cloudMat);
     m.position.set((Math.random()-0.5)*26,(Math.random()-0.5)*4,(Math.random()-0.5)*20);
     m.scale.y = 0.45;
     cluster.add(m);
@@ -388,7 +399,7 @@ for(let i=0;i<26;i++){
 /* ============================================================
    TERRAIN MESH
    ============================================================ */
-const TSEG = 170;
+const TSEG = LOW_QUALITY ? 100 : 170;
 const terrainGeo = new THREE.PlaneGeometry(ISLAND_RADIUS*2.6, ISLAND_RADIUS*2.6, TSEG, TSEG);
 terrainGeo.rotateX(-Math.PI/2);
 {
@@ -501,7 +512,7 @@ POIS.forEach(poi=>{
 /* ============================================================
    TREES / ROCKS (harvestable resource nodes)
    ============================================================ */
-const resourceNodes = []; // {mesh, type, pos, hp, maxHp}
+const resourceNodes = []; // {type, pos, hp, maxHp, instMeshes, instIndex, baseScale, curScale}
 const trunkMat = new THREE.MeshStandardMaterial({color:0x4a3420, roughness:0.9});
 const leafMat = new THREE.MeshStandardMaterial({color:0x2d5a2a, roughness:0.85, emissive:0x0a1a0d, emissiveIntensity:0.25});
 const rockMat = new THREE.MeshStandardMaterial({color:0x8a8478, roughness:0.9, flatShading:true});
@@ -511,40 +522,67 @@ function tooCloseToPOI(x,z,margin){
   return false;
 }
 
-for(let i=0;i<210;i++){
+/* Trees and rocks are drawn as InstancedMesh (one draw call per part) so hundreds
+   of them cost almost nothing — important for mobile GPUs. Geometry is pre-translated
+   so a single per-instance matrix (position+rotation+scale) places both parts correctly. */
+const treeTrunkGeo = new THREE.CylinderGeometry(0.22,0.32,2.4,7); treeTrunkGeo.translate(0,1.2,0);
+const treeLeafGeo = new THREE.ConeGeometry(1.7,3.6,8); treeLeafGeo.translate(0,3.4,0);
+const rockGeo = new THREE.DodecahedronGeometry(1,0);
+
+const trunkInst = new THREE.InstancedMesh(treeTrunkGeo, trunkMat, TREE_COUNT);
+const leafInst = new THREE.InstancedMesh(treeLeafGeo, leafMat, TREE_COUNT);
+const rockInst = new THREE.InstancedMesh(rockGeo, rockMat, ROCK_COUNT);
+[trunkInst,leafInst,rockInst].forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
+
+const nodeDummy = new THREE.Object3D();
+function buildNodeMatrix(node, scale){
+  nodeDummy.position.set(node.pos.x, node.pos.y+node.yOffset, node.pos.z);
+  nodeDummy.rotation.set(node.rot.x, node.rot.y, node.rot.z);
+  nodeDummy.scale.setScalar(scale);
+  nodeDummy.updateMatrix();
+  return nodeDummy.matrix;
+}
+function setNodeScale(node, scale){
+  const m = buildNodeMatrix(node, scale);
+  for(const mesh of node.instMeshes){ mesh.setMatrixAt(node.instIndex, m); mesh.instanceMatrix.needsUpdate = true; }
+}
+
+let treeCount = 0;
+for(let i=0;i<TREE_COUNT*3 && treeCount<TREE_COUNT;i++){
   const a = Math.random()*Math.PI*2, r = Math.random()*ISLAND_RADIUS*0.92;
   const x=Math.cos(a)*r, z=Math.sin(a)*r;
   if(islandFalloff(x,z)<0.5 || tooCloseToPOI(x,z,26)) continue;
   const y = terrainHeight(x,z);
-  const grp = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.32,2.4,7), trunkMat);
-  trunk.position.y=1.2; trunk.castShadow=true;
-  const leaf = new THREE.Mesh(new THREE.ConeGeometry(1.7,3.6,8), leafMat);
-  leaf.position.y=3.4; leaf.castShadow=true;
-  grp.add(trunk); grp.add(leaf);
-  grp.position.set(x,y,z);
-  const sc = 0.8+Math.random()*0.5; grp.scale.setScalar(sc);
-  scene.add(grp);
-  resourceNodes.push({mesh:grp, type:'wood', pos:new THREE.Vector3(x,y,z), hp:60, maxHp:60, dead:false, respawnAt:0});
+  const sc = 0.8+Math.random()*0.5;
+  const node = {type:'wood', pos:new THREE.Vector3(x,y,z), yOffset:0, rot:{x:0,y:Math.random()*Math.PI*2,z:0},
+    hp:60, maxHp:60, dead:false, respawnAt:0, instMeshes:[trunkInst,leafInst], instIndex:treeCount, baseScale:sc, curScale:sc};
+  setNodeScale(node, sc);
+  resourceNodes.push(node);
+  treeCount++;
 }
-for(let i=0;i<70;i++){
+trunkInst.count = treeCount; leafInst.count = treeCount;
+
+let rockCount = 0;
+for(let i=0;i<ROCK_COUNT*3 && rockCount<ROCK_COUNT;i++){
   const a = Math.random()*Math.PI*2, r = Math.random()*ISLAND_RADIUS*0.92;
   const x=Math.cos(a)*r, z=Math.sin(a)*r;
   if(islandFalloff(x,z)<0.5 || tooCloseToPOI(x,z,20)) continue;
   const y = terrainHeight(x,z);
-  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1+Math.random()*0.8,0), rockMat);
-  rock.position.set(x,y+0.5,z); rock.rotation.set(Math.random(),Math.random(),Math.random());
-  rock.castShadow=true; rock.receiveShadow=true;
-  scene.add(rock);
-  resourceNodes.push({mesh:rock, type:'stone', pos:new THREE.Vector3(x,y,z), hp:80, maxHp:80, dead:false, respawnAt:0});
+  const sc = 1.1+Math.random()*0.8;
+  const node = {type:'stone', pos:new THREE.Vector3(x,y,z), yOffset:0.5, rot:{x:Math.random()*Math.PI*2,y:Math.random()*Math.PI*2,z:Math.random()*Math.PI*2},
+    hp:80, maxHp:80, dead:false, respawnAt:0, instMeshes:[rockInst], instIndex:rockCount, baseScale:sc, curScale:sc};
+  setNodeScale(node, sc);
+  resourceNodes.push(node);
+  rockCount++;
 }
+rockInst.count = rockCount;
 
 /* ============================================================
    CHESTS
    ============================================================ */
 const chestList = [];
 const chestBaseMat = new THREE.MeshStandardMaterial({color:0x6b4a2a, roughness:0.7, metalness:0.2});
-const chestGoldMat = new THREE.MeshStandardMaterial({color:0xffb020, roughness:0.3, metalness:0.7, emissive:0xffb020, emissiveIntensity:0.4});
+const chestGoldMat = new THREE.MeshStandardMaterial({color:0xffb020, roughness:0.3, metalness:0.7, emissive:0xffb020, emissiveIntensity:0.9});
 
 function spawnChest(x,z){
   const y = terrainHeight(x,z);
@@ -554,8 +592,6 @@ function spawnChest(x,z){
   const lid = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.35,0.8), chestGoldMat);
   lid.position.set(0,0.85,-0.05); lid.castShadow=true;
   grp.add(base); grp.add(lid);
-  const light = new THREE.PointLight(0xffb020, 1.0, 6);
-  light.position.y=1; grp.add(light);
   grp.position.set(x,y,z);
   scene.add(grp);
   chestList.push({group:grp, lid, opened:false, pos:new THREE.Vector3(x,y,z)});
@@ -586,15 +622,13 @@ const PICKUP_DEFS = {
 function spawnPickup(type,x,z){
   const def = PICKUP_DEFS[type];
   const y = terrainHeight(x,z);
-  const mat = new THREE.MeshStandardMaterial({color:def.color, emissive:def.color, emissiveIntensity:0.7, roughness:0.3, metalness:0.4});
+  const mat = new THREE.MeshStandardMaterial({color:def.color, emissive:def.color, emissiveIntensity:1.1, roughness:0.3, metalness:0.4});
   const mesh = new THREE.Mesh(def.geo(), mat);
   mesh.position.set(x,y+0.7,z);
-  const glow = new THREE.PointLight(def.color,0.6,4);
-  mesh.add(glow);
   scene.add(mesh);
   pickupList.push({mesh, type, pos:new THREE.Vector3(x,y,z), active:true, t:Math.random()*10});
 }
-for(let i=0;i<50;i++){
+for(let i=0;i<PICKUP_COUNT;i++){
   const a=Math.random()*Math.PI*2, r=Math.random()*ISLAND_RADIUS*0.9;
   const x=Math.cos(a)*r, z=Math.sin(a)*r;
   if(islandFalloff(x,z)<0.5) continue;
@@ -943,6 +977,7 @@ window.addEventListener('keydown', e=>{
 window.addEventListener('keyup', e=>{ keys[e.code]=false; });
 
 renderer.domElement.addEventListener('mousedown', e=>{
+  if(isTouch) return;
   if(player.phase!=='ground') return;
   if(document.pointerLockElement!==renderer.domElement){ renderer.domElement.requestPointerLock(); return; }
   if(e.button===0){ if(player.buildMode) placePiece(); else { mouseDown=true; semiAutoLock=false; } }
@@ -1080,9 +1115,11 @@ function collectPickup(p){
 }
 function harvestNode(node,dt){
   node.hp -= 22*dt;
-  node.mesh.scale.multiplyScalar(1-0.15*dt);
+  node.curScale = Math.max(0, node.curScale*(1-0.15*dt));
+  setNodeScale(node, node.curScale);
   if(node.hp<=0 && !node.dead){
-    node.dead = true; node.mesh.visible=false;
+    node.dead = true;
+    setNodeScale(node, 0);
     player.materials += node.type==='wood'?15:10;
     node.respawnAt = 45+Math.random()*20;
     spawnBurst(node.pos.clone().add(new THREE.Vector3(0,1,0)), node.type==='wood'?0x6fbf4f:0x8a8478, 14,3,0.08,0.6);
@@ -1660,7 +1697,7 @@ function animate(){
 
   updateCamera();
   for(const node of resourceNodes){
-    if(node.dead){ node.respawnAt-=dt; if(node.respawnAt<=0){ node.dead=false; node.hp=node.maxHp; node.mesh.visible=true; node.mesh.scale.setScalar(1); } }
+    if(node.dead){ node.respawnAt-=dt; if(node.respawnAt<=0){ node.dead=false; node.hp=node.maxHp; node.curScale=node.baseScale; setNodeScale(node, node.curScale); } }
   }
   for(const p of pickupList){ if(p.active) p.mesh.rotation.y += dt*1.5; }
   chestList.forEach(c=>{ if(!c.opened) c.group.children[1].position.y = 0.85+Math.sin(t*2+c.pos.x)*0.02; });
