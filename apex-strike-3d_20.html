@@ -552,6 +552,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 <script>
@@ -650,35 +651,117 @@ const camera = new THREE.PerspectiveCamera(BASE_FOV, window.innerWidth/window.in
 camera.rotation.order = 'YXZ';
 camera.position.set(0, 1.7, 0);
 
-const renderer = new THREE.WebGLRenderer({antialias:!isTouch, powerPreference:"high-performance"});
+const renderer = new THREE.WebGLRenderer({antialias:!isTouch, powerPreference:"high-performance", precision:isTouch?"mediump":"highp", stencil:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch?1.5:2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8;
+renderer.toneMappingExposure = 1.05;
 container.appendChild(renderer.domElement);
 
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.4, 0.6);
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.55, 0.72);
 composer.addPass(bloomPass);
+
+/* Cinematic grade — filmic contrast/saturation lift, vignette, subtle chromatic aberration + grain */
+const CinematicShader = {
+  uniforms:{ tDiffuse:{value:null}, time:{value:0}, vignetteStrength:{value:0.32}, grainStrength:{value:isTouch?0.02:0.035}, aberration:{value:isTouch?0.0010:0.0018} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    uniform sampler2D tDiffuse; uniform float time; uniform float vignetteStrength; uniform float grainStrength; uniform float aberration;
+    varying vec2 vUv;
+    float rand(vec2 co){ return fract(sin(dot(co,vec2(12.9898,78.233)))*43758.5453); }
+    void main(){
+      vec2 uv = vUv;
+      vec2 toCenter = uv - 0.5;
+      vec2 ab = toCenter * aberration;
+      float r = texture2D(tDiffuse, uv - ab).r;
+      float g = texture2D(tDiffuse, uv).g;
+      float b = texture2D(tDiffuse, uv + ab).b;
+      vec3 color = vec3(r,g,b);
+      float dist = length(toCenter);
+      float vig = smoothstep(0.9, 0.28, dist);
+      color *= mix(1.0-vignetteStrength, 1.0, vig);
+      color = mix(vec3(dot(color, vec3(0.299,0.587,0.114))), color, 1.12);
+      color = pow(clamp(color,0.0,1.0), vec3(0.965));
+      float grain = (rand(uv*vec2(1920.0,1080.0) + time) - 0.5) * grainStrength;
+      color += grain;
+      gl_FragColor = vec4(color, 1.0);
+    }`
+};
+const cinematicPass = new THREE.ShaderPass(CinematicShader);
+composer.addPass(cinematicPass);
+
+const fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+fxaaPass.material.uniforms['resolution'].value.set(
+  1/(window.innerWidth*renderer.getPixelRatio()), 1/(window.innerHeight*renderer.getPixelRatio())
+);
+composer.addPass(fxaaPass);
 
 const tpCamera = new THREE.PerspectiveCamera(BASE_FOV, window.innerWidth/window.innerHeight, 0.1, 1200);
 scene.add(tpCamera);
 
-const hemi = new THREE.HemisphereLight(0xdfefff, 0x8fae7a, 0.5);
+/* Sky dome — gradient sky w/ sun disc, doubles as source for PBR environment reflections */
+const sunDir = new THREE.Vector3(-80, 110, 40).normalize();
+const SkyShader = {
+  uniforms:{ sunDir:{value:sunDir}, topColor:{value:new THREE.Color(0x2f7fd6)}, midColor:{value:new THREE.Color(0xaed8f5)}, horizonColor:{value:new THREE.Color(0xe9f5ff)} },
+  vertexShader:`varying vec3 vWorldPos; void main(){ vec4 wp = modelMatrix*vec4(position,1.0); vWorldPos = wp.xyz; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    uniform vec3 sunDir; uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor;
+    varying vec3 vWorldPos;
+    void main(){
+      float h = normalize(vWorldPos).y;
+      vec3 sky = mix(horizonColor, midColor, smoothstep(0.0, 0.25, h));
+      sky = mix(sky, topColor, smoothstep(0.2, 1.0, h));
+      float sunAmt = max(dot(normalize(vWorldPos), sunDir), 0.0);
+      sky += vec3(1.0,0.95,0.8) * pow(sunAmt, 340.0) * 3.0;
+      sky += vec3(1.0,0.9,0.7) * pow(sunAmt, 12.0) * 0.25;
+      gl_FragColor = vec4(sky, 1.0);
+    }`
+};
+const skyMat = new THREE.ShaderMaterial({uniforms:SkyShader.uniforms, vertexShader:SkyShader.vertexShader, fragmentShader:SkyShader.fragmentShader, side:THREE.BackSide, fog:false, depthWrite:false});
+const skyDome = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyMat);
+skyDome.renderOrder = -1000;
+scene.add(skyDome);
+
+/* Bake the sky into a PMREM environment map so standard/physical materials get realistic ambient reflections */
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 24, 12), skyMat.clone()));
+const envRT = pmremGenerator.fromScene(envScene, 0.035, 0.1, 200);
+scene.environment = envRT.texture;
+pmremGenerator.dispose();
+
+/* Soft sun glow sprite for a cheap volumetric god-ray look when facing the sun */
+const sunGlowCanvas = document.createElement('canvas'); sunGlowCanvas.width = sunGlowCanvas.height = 256;
+(function(){
+  const ctx = sunGlowCanvas.getContext('2d');
+  const grad = ctx.createRadialGradient(128,128,0,128,128,128);
+  grad.addColorStop(0,'rgba(255,250,225,0.9)'); grad.addColorStop(0.35,'rgba(255,235,180,0.35)'); grad.addColorStop(1,'rgba(255,235,180,0)');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,256,256);
+})();
+const sunGlowMat = new THREE.SpriteMaterial({map:new THREE.CanvasTexture(sunGlowCanvas), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false});
+const sunGlow = new THREE.Sprite(sunGlowMat);
+sunGlow.scale.set(220,220,1);
+sunGlow.position.copy(sunDir).multiplyScalar(850);
+sunGlow.renderOrder = -999;
+scene.add(sunGlow);
+
+const hemi = new THREE.HemisphereLight(0xdfefff, 0x8fae7a, 0.55);
 scene.add(hemi);
-const moon = new THREE.DirectionalLight(0xfff3d6, 0.85);
+const moon = new THREE.DirectionalLight(0xfff3d6, 0.9);
 moon.position.set(-80, 110, 40);
 moon.castShadow = true;
-moon.shadow.mapSize.set(isTouch?1024:2048, isTouch?1024:2048);
+moon.shadow.mapSize.set(isTouch?1024:4096, isTouch?1024:4096);
 moon.shadow.camera.left=-140; moon.shadow.camera.right=140;
 moon.shadow.camera.top=140; moon.shadow.camera.bottom=-140;
 moon.shadow.camera.far=300;
-moon.shadow.bias=-0.0015;
+moon.shadow.bias=-0.0012;
+moon.shadow.normalBias=0.02;
 scene.add(moon);
 
 const flashLight = new THREE.PointLight(0xbfe6ff, 0.3, 10);
@@ -709,12 +792,38 @@ function makeGridTexture(color1, color2, size=512, cells=16){
   return tex;
 }
 function makeGrassTexture(){
-  const c = document.createElement('canvas'); c.width=c.height=256;
+  const size=512;
+  const c = document.createElement('canvas'); c.width=c.height=size;
   const ctx = c.getContext('2d');
-  ctx.fillStyle='#4a7a3a'; ctx.fillRect(0,0,256,256);
-  for(let i=0;i<900;i++){
-    ctx.fillStyle = Math.random()<0.5?'rgba(90,140,60,0.5)':'rgba(60,110,45,0.5)';
-    ctx.fillRect(Math.random()*256, Math.random()*256, 2, 6);
+  ctx.fillStyle='#4a7a3a'; ctx.fillRect(0,0,size,size);
+  for(let i=0;i<1400;i++){
+    ctx.fillStyle = Math.random()<0.5?'rgba(30,55,25,0.35)':'rgba(20,40,18,0.3)';
+    ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 6+Math.random()*14, 0, Math.PI*2); ctx.fill();
+  }
+  for(let i=0;i<4200;i++){
+    const lit = Math.random()<0.5;
+    ctx.fillStyle = lit ? 'rgba(140,190,95,0.55)' : 'rgba(60,110,45,0.55)';
+    ctx.save();
+    ctx.translate(Math.random()*size, Math.random()*size);
+    ctx.rotate((Math.random()-0.5)*0.6);
+    ctx.fillRect(-1, 0, 2, 5+Math.random()*7);
+    ctx.restore();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+function makeNoiseBumpTexture(size=512, cellCount=64, strength=0.5){
+  const c = document.createElement('canvas'); c.width=c.height=size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#808080'; ctx.fillRect(0,0,size,size);
+  const cell = size/cellCount;
+  for(let y=0;y<cellCount;y++){
+    for(let x=0;x<cellCount;x++){
+      const v = 128 + (Math.random()-0.5)*255*strength;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(x*cell, y*cell, cell+1, cell+1);
+    }
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -746,12 +855,22 @@ function makeWoodTexture(){
   return tex;
 }
 
-const groundTex = makeGridTexture('#9aa1a6','#c9d0d4', 512, 24);
+const groundTex = makeGridTexture('#9aa1a6','#c9d0d4', 1024, 24);
 groundTex.repeat.set(20,20);
+groundTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 const grassTex = makeGrassTexture();
 grassTex.repeat.set(60,60);
+grassTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const groundBump = makeNoiseBumpTexture(512, 48, 0.4);
+groundBump.repeat.set(20,20);
+const grassBump = makeNoiseBumpTexture(512, 96, 0.55);
+grassBump.repeat.set(60,60);
+const wallBump = makeNoiseBumpTexture(256, 32, 0.35);
+wallBump.repeat.set(24,3);
+const buildingBump = makeNoiseBumpTexture(256, 32, 0.35);
+buildingBump.repeat.set(3,3);
 
-const groundMat = new THREE.MeshStandardMaterial({map:groundTex, roughness:0.85, metalness:0.15});
+const groundMat = new THREE.MeshStandardMaterial({map:groundTex, bumpMap:groundBump, bumpScale:0.06, roughness:0.85, metalness:0.15, envMapIntensity:0.6});
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_SIZE*0.55*2, ARENA_SIZE*2), groundMat);
 ground.rotation.x = -Math.PI/2;
 ground.receiveShadow = true;
@@ -759,14 +878,14 @@ ground.position.x = 0;
 scene.add(ground);
 groundTargets.push(ground);
 
-const grassMat = new THREE.MeshStandardMaterial({map:grassTex, roughness:0.95, metalness:0.02});
+const grassMat = new THREE.MeshStandardMaterial({map:grassTex, bumpMap:grassBump, bumpScale:0.08, roughness:0.95, metalness:0.02, envMapIntensity:0.3});
 const grassField = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_SIZE*2, ARENA_SIZE*2), grassMat);
 grassField.rotation.x = -Math.PI/2;
 grassField.position.y = -0.02;
 grassField.receiveShadow = true;
 scene.add(grassField);
 
-const wallMat = new THREE.MeshStandardMaterial({color:0xb8bcc0, roughness:0.8, metalness:0.2});
+const wallMat = new THREE.MeshStandardMaterial({color:0xb8bcc0, bumpMap:wallBump, bumpScale:0.03, roughness:0.8, metalness:0.2, envMapIntensity:0.8});
 (function addPerimeterWall(){
   const h=14, t=2;
   const geoLR = new THREE.BoxGeometry(t, h, ARENA_SIZE*2);
@@ -783,9 +902,9 @@ const wallMat = new THREE.MeshStandardMaterial({color:0xb8bcc0, roughness:0.8, m
 const obstacles = [];      // {mesh, box3}  static world geometry (blocks horizontal movement)
 const treeColliders = [];  // {x,z,r}
 const buildingMats = [
-  new THREE.MeshStandardMaterial({color:0xcdd3d8, roughness:0.75, metalness:0.15}),
-  new THREE.MeshStandardMaterial({color:0xb7a98f, roughness:0.8, metalness:0.1}),
-  new THREE.MeshStandardMaterial({color:0x9fb0a8, roughness:0.75, metalness:0.15}),
+  new THREE.MeshStandardMaterial({color:0xcdd3d8, bumpMap:buildingBump, bumpScale:0.025, roughness:0.75, metalness:0.15, envMapIntensity:0.7}),
+  new THREE.MeshStandardMaterial({color:0xb7a98f, bumpMap:buildingBump, bumpScale:0.025, roughness:0.8, metalness:0.1, envMapIntensity:0.7}),
+  new THREE.MeshStandardMaterial({color:0x9fb0a8, bumpMap:buildingBump, bumpScale:0.025, roughness:0.75, metalness:0.15, envMapIntensity:0.7}),
 ];
 const trimColors = [0xd94f4f, 0x3f7fd9, 0xd9a63f, 0x4fa87a, 0x8a6fbf]; // muted daytime accent trims, no glow
 
@@ -2887,6 +3006,7 @@ function animate(){
   }
   dust.rotation.y += dt*0.005;
 
+  cinematicPass.uniforms.time.value = performance.now()*0.001;
   composer.render();
 }
 
@@ -2900,6 +3020,9 @@ window.addEventListener('resize', ()=>{
   tpCamera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight);
+  fxaaPass.material.uniforms['resolution'].value.set(
+    1/(window.innerWidth*renderer.getPixelRatio()), 1/(window.innerHeight*renderer.getPixelRatio())
+  );
 });
 
 const nameInput = document.getElementById('nameInput');
