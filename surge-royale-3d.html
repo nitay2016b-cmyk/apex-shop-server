@@ -34,6 +34,43 @@
   #lobbyLoading{color:#a99fd6;font-size:12px;letter-spacing:2px;display:none;}
   #rotateHint{display:none;color:var(--gold);font-size:11px;letter-spacing:2px;text-align:center;}
   @media (pointer:coarse) and (orientation:portrait){ #rotateHint{display:block;} }
+  #lobbyCoinRow{color:var(--gold);font-size:15px;letter-spacing:1px;font-weight:700;margin-top:-6px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;}
+  #lobbyStatsRow{color:#a99fd6;font-size:11px;font-weight:400;letter-spacing:1px;}
+  #lobbyStatsRow b{color:#e6e0ff;}
+  #lobbyBtnRow{display:flex;gap:12px;align-items:center;}
+  .shopBtnStyle{margin-top:10px;padding:16px 30px;font-size:14px;font-weight:800;letter-spacing:2px;color:var(--accent2);
+    background:rgba(0,224,160,0.1);border:1px solid var(--accent2);border-radius:10px;cursor:pointer;}
+
+  /* ===== ITEM SHOP ===== */
+  #shopScreen{z-index:110;}
+  #shopBalance{color:var(--gold);font-size:16px;letter-spacing:2px;font-weight:700;}
+  #shopNote{color:#7d74a0;font-size:10px;letter-spacing:1px;max-width:420px;text-align:center;margin-bottom:4px;}
+  #shopTabs{display:flex;gap:8px;}
+  .shopTabBtn{padding:8px 18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);
+    border-radius:8px;color:#a99fd6;font-size:12px;letter-spacing:2px;font-weight:700;cursor:pointer;}
+  .shopTabBtn.active{color:#fff;border-color:var(--accent2);background:rgba(0,224,160,0.12);}
+  #shopGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;
+    width:min(720px,90vw);max-height:44vh;overflow-y:auto;padding:6px;}
+  .shopItem{background:var(--glass);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .itemPreview{width:64px;height:64px;border-radius:10px;box-shadow:0 0 16px rgba(0,0,0,0.3) inset;}
+  .itemName{font-size:11px;letter-spacing:1px;color:#e6e0ff;text-align:center;font-weight:700;}
+  .itemPrice{font-size:12px;color:var(--gold);}
+  .itemBtn{margin-top:4px;padding:7px 14px;font-size:11px;font-weight:800;letter-spacing:1px;border:none;
+    border-radius:7px;cursor:pointer;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;width:100%;}
+  .itemBtn:disabled{background:#332f4a;color:#665e88;cursor:not-allowed;}
+  .itemBtn.equippedBtn{background:#1a2b26;color:var(--accent2);border:1px solid var(--accent2);}
+  .coinsEarnedRow{color:var(--gold);font-size:14px;letter-spacing:1px;margin-top:2px;}
+  .endBtnRow{display:flex;gap:12px;}
+  .secondaryBtn{background:rgba(255,255,255,0.08);color:var(--accent2);border:1px solid var(--accent2);}
+
+  /* ===== CHALLENGES ===== */
+  #challengePanel{position:absolute;top:74px;left:16px;width:230px;display:flex;flex-direction:column;gap:4px;}
+  .challengeRow{display:flex;justify-content:space-between;gap:6px;padding:5px 10px;font-size:10px;color:#c9c2e8;
+    background:var(--glass);border:1px solid rgba(255,255,255,0.08);border-radius:7px;}
+  .challengeRow.done{color:#7dffb0;border-color:rgba(125,255,176,0.3);}
+  .cReward{color:var(--gold);font-weight:700;white-space:nowrap;}
 
   /* ===== HUD ===== */
   #hud{position:fixed;inset:0;pointer-events:none;z-index:15;display:none;}
@@ -173,6 +210,7 @@
   @media (max-width:900px){
     #killFeed{display:none;}
     #bottomLeft{width:220px;}
+    #challengePanel{display:none;}
   }
 </style>
 </head>
@@ -182,11 +220,30 @@
   <h1>SURGE ROYALE</h1>
   <div class="sub">ISLAND BATTLE — LAST ONE STANDING WINS</div>
   <div id="lobbyCanvasWrap"><canvas id="lobbyCanvas"></canvas></div>
-  <button id="dropBtn">DROP IN</button>
+  <div id="lobbyCoinRow">🪙 <span id="lobbyCoinVal">0</span> COINS
+    <span id="lobbyStatsRow">WINS <b id="lobbyWins">0</b> · ELIMS <b id="lobbyElims">0</b></span>
+  </div>
+  <div id="lobbyBtnRow">
+    <button id="dropBtn">DROP IN</button>
+    <button id="shopBtn" class="shopBtnStyle">ITEM SHOP</button>
+  </div>
   <div id="lobbyHint">WASD move · Mouse look · Click to fire · Space jump · Shift sprint · Ctrl crouch<br>
     B build mode · E interact/harvest · 1-4 weapons · Q switch build piece</div>
   <div id="lobbyLoading">GENERATING ISLAND…</div>
   <div id="rotateHint">↻ ROTATE YOUR PHONE TO LANDSCAPE FOR THE BEST EXPERIENCE</div>
+</div>
+
+<div id="shopScreen" class="endScreen">
+  <h2 style="color:var(--accent2);">ITEM SHOP</h2>
+  <div id="shopBalance">🪙 <span id="shopCoinVal">0</span> COINS</div>
+  <div id="shopNote">Coins are earned free by completing match challenges — never sold for real money.</div>
+  <div id="shopTabs">
+    <button class="shopTabBtn active" data-tab="outfits">OUTFITS</button>
+    <button class="shopTabBtn" data-tab="pickaxes">PICKAXES</button>
+    <button class="shopTabBtn" data-tab="gliders">GLIDERS</button>
+  </div>
+  <div id="shopGrid"></div>
+  <button class="endBtn" id="shopCloseBtn">CLOSE</button>
 </div>
 
 <div id="countdownWrap"><div id="countdownNum">3</div></div>
@@ -227,6 +284,7 @@
 
   <div id="minimapWrap" class="panel"><canvas id="minimapCanvas" width="180" height="180"></canvas></div>
   <div id="killFeed"></div>
+  <div id="challengePanel"></div>
 
   <div id="promptBox" class="panel"></div>
   <div id="harvestBarWrap"><div id="harvestBarFill"></div></div>
@@ -248,7 +306,11 @@
     <div><div class="l">TIME SURVIVED</div><div class="v" id="vTime">0:00</div></div>
     <div><div class="l">DAMAGE DEALT</div><div class="v" id="vDmg">0</div></div>
   </div>
-  <button class="endBtn" id="playAgainBtn1">PLAY AGAIN</button>
+  <div class="coinsEarnedRow">🪙 <span id="vCoins">+0</span> COINS — BALANCE <span id="vCoinsTotal">0</span></div>
+  <div class="endBtnRow">
+    <button class="endBtn" id="playAgainBtn1">PLAY AGAIN</button>
+    <button class="endBtn secondaryBtn" id="shopBtnVictory">ITEM SHOP</button>
+  </div>
 </div>
 
 <div id="eliminatedScreen" class="endScreen">
@@ -258,7 +320,11 @@
     <div><div class="l">ELIMINATIONS</div><div class="v" id="eElims">0</div></div>
     <div><div class="l">TIME SURVIVED</div><div class="v" id="eTime">0:00</div></div>
   </div>
-  <button class="endBtn" id="playAgainBtn2">PLAY AGAIN</button>
+  <div class="coinsEarnedRow">🪙 <span id="eCoins">+0</span> COINS — BALANCE <span id="eCoinsTotal">0</span></div>
+  <div class="endBtnRow">
+    <button class="endBtn" id="playAgainBtn2">PLAY AGAIN</button>
+    <button class="endBtn secondaryBtn" id="shopBtnElim">ITEM SHOP</button>
+  </div>
 </div>
 
 <div id="touchLayer">
@@ -676,11 +742,12 @@ const WEAPONS = {
 const WEAPON_KEYS = Object.keys(WEAPONS);
 const GUN_KEYS = WEAPON_KEYS.filter(k=>!WEAPONS[k].melee);
 
-function makePickaxeMesh(){
+function makePickaxeMesh(color){
+  if(color===undefined) color = 0x00e0a0;
   const g = new THREE.Group();
   const handleMat = new THREE.MeshStandardMaterial({color:0x5a3d22, roughness:0.85});
   const headMat = new THREE.MeshStandardMaterial({color:0xb0b6bd, roughness:0.35, metalness:0.85});
-  const accentMat = new THREE.MeshStandardMaterial({color:0x00e0a0, emissive:0x00e0a0, emissiveIntensity:0.5, roughness:0.3});
+  const accentMat = new THREE.MeshStandardMaterial({color:color, emissive:color, emissiveIntensity:0.5, roughness:0.3});
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.035,0.55,6), handleMat);
   handle.rotation.x = Math.PI/2.4; g.add(handle);
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.09,0.09), headMat);
@@ -747,7 +814,7 @@ function makeCharacter(bodyColor, accentColor){
     const upper = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.38,0.2), bodyMat);
     upper.position.y=-0.19; upper.castShadow=true; hip.add(upper);
     const lowerGrp = new THREE.Group(); lowerGrp.position.y=-0.38; hip.add(lowerGrp);
-    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.4,0.18), accentMat.clone());
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.4,0.18), accentMat);
     lower.position.y=-0.2; lower.castShadow=true; lowerGrp.add(lower);
     return {hip, lowerGrp};
   }
@@ -756,8 +823,61 @@ function makeCharacter(bodyColor, accentColor){
   const weaponMount = new THREE.Group();
   armR.hand.add(weaponMount);
 
-  return {root, hips, neck, armL, armR, legL, legR, weaponMount, torso};
+  return {root, hips, neck, armL, armR, legL, legR, weaponMount, torso, bodyMat, accentMat};
 }
+
+/* ============================================================
+   PROGRESSION — COINS, COSMETICS, SAVE DATA
+   This is a standalone offline file with no server or payment
+   processor, so "Coins" are a single free in-game currency earned
+   only by completing challenges/matches — never sold for real money.
+   ============================================================ */
+const SAVE_KEY = 'surgeRoyaleSave_v1';
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(typeof parsed.coins==='number') return parsed;
+    }
+  }catch(e){}
+  return {
+    coins: 500,
+    ownedOutfits: ['default'], ownedPickaxes: ['default'], ownedGliders: ['default'],
+    equippedOutfit: 'default', equippedPickaxe: 'default', equippedGlider: 'default',
+    stats: {matches:0, wins:0, eliminations:0, damage:0},
+  };
+}
+function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+const save = loadSave();
+
+const OUTFITS = [
+  {id:'default', name:'RECRUIT', price:0, body:0x3a3560, accent:0x00e0a0},
+  {id:'crimson', name:'CRIMSON OPS', price:300, body:0x5a1f28, accent:0xff3d5a},
+  {id:'azure', name:'AZURE STRIKER', price:300, body:0x1f3a5a, accent:0x3aa0ff},
+  {id:'jade', name:'JADE HUNTER', price:500, body:0x1f4a30, accent:0x4ade6e},
+  {id:'violet', name:'VOID WALKER', price:800, body:0x241033, accent:0xb45cff},
+  {id:'gold', name:'GILDED CHAMPION', price:1200, body:0x3a2f10, accent:0xffb020},
+];
+const PICKAXES = [
+  {id:'default', name:'STANDARD PICK', price:0, color:0x00e0a0},
+  {id:'ember', name:'EMBER PICK', price:250, color:0xff6a3d},
+  {id:'frost', name:'FROST PICK', price:250, color:0x6fe0ff},
+  {id:'gold', name:'GOLDEN PICK', price:900, color:0xffd24a},
+];
+const GLIDERS = [
+  {id:'default', name:'STANDARD CHUTE', price:0, color:0x7b5cff},
+  {id:'sunset', name:'SUNSET CHUTE', price:200, color:0xff8a3d},
+  {id:'toxic', name:'TOXIC CHUTE', price:200, color:0x9dff3d},
+  {id:'royal', name:'ROYAL CHUTE', price:700, color:0xffd24a},
+];
+function catalogFor(tab){ return tab==='outfits'?OUTFITS : tab==='pickaxes'?PICKAXES : GLIDERS; }
+function ownedListFor(tab){ return tab==='outfits'?save.ownedOutfits : tab==='pickaxes'?save.ownedPickaxes : save.ownedGliders; }
+function equippedFor(tab){ return tab==='outfits'?save.equippedOutfit : tab==='pickaxes'?save.equippedPickaxe : save.equippedGlider; }
+function setEquipped(tab,id){ if(tab==='outfits') save.equippedOutfit=id; else if(tab==='pickaxes') save.equippedPickaxe=id; else save.equippedGlider=id; }
+function equippedPickaxeColor(){ return (PICKAXES.find(p=>p.id===save.equippedPickaxe)||PICKAXES[0]).color; }
+function equippedGliderColor(){ return (GLIDERS.find(p=>p.id===save.equippedGlider)||GLIDERS[0]).color; }
+function equippedOutfitColors(){ const o = OUTFITS.find(o=>o.id===save.equippedOutfit)||OUTFITS[0]; return {body:o.body, accent:o.accent}; }
 
 /* ============================================================
    PLAYER STATE
@@ -785,14 +905,15 @@ const player = {
   buildMode: false,
   buildPiece: 'wall',
   harvestTarget: null,
+  matchStats: {chestsOpened:0, materialsHarvested:0},
 };
-const playerModel = makeCharacter(0x3a3560, 0x00e0a0);
+const playerModel = makeCharacter(equippedOutfitColors().body, equippedOutfitColors().accent);
 playerModel.root.visible = false;
 scene.add(playerModel.root);
 let currentWeaponMesh = null;
 function refreshWeaponMesh(){
   if(currentWeaponMesh) playerModel.weaponMount.remove(currentWeaponMesh);
-  currentWeaponMesh = player.currentWeapon==='pickaxe' ? makePickaxeMesh() : makeWeaponMesh(player.currentWeapon);
+  currentWeaponMesh = player.currentWeapon==='pickaxe' ? makePickaxeMesh(equippedPickaxeColor()) : makeWeaponMesh(player.currentWeapon);
   currentWeaponMesh.rotation.set(0,Math.PI/2,0);
   currentWeaponMesh.position.set(0,-0.02,0.08);
   playerModel.weaponMount.add(currentWeaponMesh);
@@ -1001,6 +1122,62 @@ function pushKillFeed(text,color){
 }
 
 /* ============================================================
+   MATCH CHALLENGES (earn Coins by playing — never sold for money)
+   ============================================================ */
+const CHALLENGE_DEFS = [
+  {id:'elims3', label:'Eliminate 3 opponents', target:3, reward:150, check:()=>player.eliminations},
+  {id:'dmg300', label:'Deal 300 damage', target:300, reward:100, check:()=>player.damageDealt},
+  {id:'chests5', label:'Open 5 chests', target:5, reward:80, check:()=>player.matchStats.chestsOpened},
+  {id:'mats200', label:'Harvest 200 materials', target:200, reward:60, check:()=>player.matchStats.materialsHarvested},
+  {id:'survive3', label:'Survive 3 minutes', target:180, reward:120, check:()=>(performance.now()-player.startTime)/1000},
+];
+const challenges = CHALLENGE_DEFS.map(c=>({...c, done:false}));
+function awardMatchEnd(placementBonus, won){
+  save.coins += placementBonus;
+  save.stats.matches++;
+  if(won) save.stats.wins++;
+  save.stats.eliminations += player.eliminations;
+  save.stats.damage += Math.round(player.damageDealt);
+  saveGame();
+  updateCoinsUI();
+  return placementBonus;
+}
+function updateCoinsUI(){
+  const lobbyEl = document.getElementById('lobbyCoinVal');
+  if(lobbyEl) lobbyEl.textContent = save.coins;
+  const shopEl = document.getElementById('shopCoinVal');
+  if(shopEl) shopEl.textContent = save.coins;
+}
+let lastChallengeRender = 0;
+function updateChallenges(){
+  let changed = false;
+  for(const c of challenges){
+    if(c.done) continue;
+    if(c.check()>=c.target){
+      c.done = true; changed = true;
+      save.coins += c.reward;
+      saveGame();
+      pushKillFeed(`✓ ${c.label} — +${c.reward} COINS`, '#ffb020');
+      updateCoinsUI();
+    }
+  }
+  const now = performance.now();
+  if(changed || now-lastChallengeRender>500){ renderChallengePanel(); lastChallengeRender = now; }
+  return changed;
+}
+function renderChallengePanel(){
+  const el = document.getElementById('challengePanel');
+  if(!el) return;
+  el.innerHTML = challenges.map(c=>{
+    const cur = Math.min(c.target, Math.floor(c.check()));
+    return `<div class="challengeRow${c.done?' done':''}">
+      <span class="cLabel">${c.done?'✓':'○'} ${c.label} (${cur}/${c.target})</span>
+      <span class="cReward">+${c.reward}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
    INPUT
    ============================================================ */
 const keys = {};
@@ -1145,6 +1322,7 @@ function tryInteract(){
 function openChest(c){
   c.opened = true;
   c.lid.rotation.x = -1.9;
+  player.matchStats.chestsOpened++;
   const key = GUN_KEYS[Math.floor(Math.random()*GUN_KEYS.length)];
   if(!player.weapons[key]) player.weapons[key] = {ammo:WEAPONS[key].mag};
   player.ammoReserve[key] += Math.floor(WEAPONS[key].mag*2);
@@ -1172,7 +1350,9 @@ function harvestNode(node,dt){
   if(node.hp<=0 && !node.dead){
     node.dead = true;
     setNodeScale(node, 0);
-    player.materials += node.type==='wood'?15:10;
+    const gained = node.type==='wood'?15:10;
+    player.materials += gained;
+    player.matchStats.materialsHarvested += gained;
     node.respawnAt = 45+Math.random()*20;
     spawnBurst(node.pos.clone().add(new THREE.Vector3(0,1,0)), node.type==='wood'?0x6fbf4f:0x8a8478, 14,3,0.08,0.6);
     updateHUD();
@@ -1443,9 +1623,10 @@ let stormDamageAccum = 0;
    SKYDIVE / GLIDER
    ============================================================ */
 const glider = { mesh:null, deployed:false };
-function makeGliderMesh(){
+function makeGliderMesh(color){
+  if(color===undefined) color = 0x7b5cff;
   const g = new THREE.Group();
-  const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.6,0.5,4), new THREE.MeshStandardMaterial({color:0x7b5cff, emissive:0x7b5cff, emissiveIntensity:0.3, roughness:0.5}));
+  const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.6,0.5,4), new THREE.MeshStandardMaterial({color, emissive:color, emissiveIntensity:0.3, roughness:0.5}));
   canopy.rotation.x = Math.PI; canopy.position.y = 2.4;
   g.add(canopy);
   return g;
@@ -1474,12 +1655,13 @@ function beginFreefall(){
   document.getElementById('touchLayer').classList.toggle('show', isTouch);
   player.startTime = performance.now();
   spawnAllBots();
+  renderChallengePanel();
 }
 function spawnAllBots(){ for(let i=0;i<18;i++) spawnBot(); document.getElementById('playersVal').textContent='19'; }
 function deployGlider(){
   if(player.phase!=='freefall') return;
   player.phase='glide';
-  glider.mesh = makeGliderMesh();
+  glider.mesh = makeGliderMesh(equippedGliderColor());
   playerModel.root.add(glider.mesh);
   glider.mesh.position.y = 0;
   document.getElementById('glideHint').style.display='none';
@@ -1601,7 +1783,7 @@ function setHarvestVisual(active){
   harvestVisualActive = active;
   if(active){
     if(!harvestMesh){
-      harvestMesh = makePickaxeMesh();
+      harvestMesh = makePickaxeMesh(equippedPickaxeColor());
       harvestMesh.rotation.set(0,Math.PI/2,0); harvestMesh.position.set(0,-0.02,0.08);
       playerModel.weaponMount.add(harvestMesh);
     }
@@ -1639,9 +1821,12 @@ function fmtTime(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+S
 function triggerVictory(){
   player.phase='victory';
   document.exitPointerLock && document.exitPointerLock();
+  const bonus = awardMatchEnd(300, true);
   document.getElementById('vElims').textContent = player.eliminations;
   document.getElementById('vTime').textContent = fmtTime(performance.now()-player.startTime);
   document.getElementById('vDmg').textContent = Math.round(player.damageDealt);
+  document.getElementById('vCoins').textContent = '+'+bonus;
+  document.getElementById('vCoinsTotal').textContent = save.coins;
   document.getElementById('victoryScreen').classList.add('show');
 }
 function triggerElimination(){
@@ -1649,9 +1834,13 @@ function triggerElimination(){
   playerModel.root.rotation.z = Math.PI/2;
   document.exitPointerLock && document.exitPointerLock();
   const remaining = bots.filter(b=>b.alive).length;
-  document.getElementById('ePlace').textContent = '#'+(remaining+1);
+  const placement = remaining+1;
+  const bonus = awardMatchEnd(Math.max(20, (20-placement)*15), false);
+  document.getElementById('ePlace').textContent = '#'+placement;
   document.getElementById('eElims').textContent = player.eliminations;
   document.getElementById('eTime').textContent = fmtTime(performance.now()-player.startTime);
+  document.getElementById('eCoins').textContent = '+'+bonus;
+  document.getElementById('eCoinsTotal').textContent = save.coins;
   document.getElementById('eliminatedScreen').classList.add('show');
 }
 function resetGame(){ location.reload(); }
@@ -1720,10 +1909,10 @@ const lobbyCamera = new THREE.PerspectiveCamera(30,280/340,0.1,20);
 lobbyCamera.position.set(0,1.1,4.4);
 lobbyScene.add(new THREE.HemisphereLight(0xffffff,0x443366,1.2));
 const lobbyKey = new THREE.DirectionalLight(0xffe6c2,1.1); lobbyKey.position.set(2,3,2); lobbyScene.add(lobbyKey);
-const lobbyChar = makeCharacter(0x3a3560, 0x00e0a0);
+const lobbyChar = makeCharacter(equippedOutfitColors().body, equippedOutfitColors().accent);
 lobbyChar.root.position.y=-0.95;
 lobbyScene.add(lobbyChar.root);
-const lobbyWeapon = makeWeaponMesh('burst');
+let lobbyWeapon = makePickaxeMesh(equippedPickaxeColor());
 lobbyWeapon.rotation.set(0,Math.PI/2,0); lobbyWeapon.position.set(0,-0.02,0.08);
 lobbyChar.weaponMount.add(lobbyWeapon);
 (function animLobby(){
@@ -1731,6 +1920,81 @@ lobbyChar.weaponMount.add(lobbyWeapon);
   lobbyChar.root.rotation.y += 0.008;
   lobbyRenderer.render(lobbyScene, lobbyCamera);
 })();
+
+/* ============================================================
+   ITEM SHOP (spends Coins earned in-game — no real-money purchases)
+   ============================================================ */
+function applyCosmetics(){
+  const outfit = equippedOutfitColors();
+  playerModel.bodyMat.color.setHex(outfit.body);
+  playerModel.accentMat.color.setHex(outfit.accent);
+  playerModel.accentMat.emissive.setHex(outfit.accent);
+  lobbyChar.bodyMat.color.setHex(outfit.body);
+  lobbyChar.accentMat.color.setHex(outfit.accent);
+  lobbyChar.accentMat.emissive.setHex(outfit.accent);
+  refreshWeaponMesh();
+  lobbyChar.weaponMount.remove(lobbyWeapon);
+  lobbyWeapon = makePickaxeMesh(equippedPickaxeColor());
+  lobbyWeapon.rotation.set(0,Math.PI/2,0); lobbyWeapon.position.set(0,-0.02,0.08);
+  lobbyChar.weaponMount.add(lobbyWeapon);
+}
+function colorHex(c){ return '#'+c.toString(16).padStart(6,'0'); }
+let shopTab = 'outfits';
+function renderShop(){
+  updateCoinsUI();
+  const grid = document.getElementById('shopGrid');
+  grid.innerHTML = '';
+  const cat = catalogFor(shopTab), owned = ownedListFor(shopTab), equipped = equippedFor(shopTab);
+  cat.forEach(item=>{
+    const isOwned = owned.includes(item.id);
+    const isEquipped = equipped===item.id;
+    const previewCss = item.accent!==undefined
+      ? `linear-gradient(135deg, ${colorHex(item.body)}, ${colorHex(item.accent)})`
+      : colorHex(item.color);
+    const card = document.createElement('div');
+    card.className = 'shopItem';
+    card.innerHTML = `
+      <div class="itemPreview" style="background:${previewCss}"></div>
+      <div class="itemName">${item.name}</div>
+      <div class="itemPrice">${item.price===0?'DEFAULT':'🪙 '+item.price}</div>
+    `;
+    const btn = document.createElement('button');
+    btn.className = 'itemBtn';
+    if(isEquipped){ btn.textContent='EQUIPPED'; btn.disabled=true; btn.classList.add('equippedBtn'); }
+    else if(isOwned){
+      btn.textContent = 'EQUIP';
+      btn.addEventListener('click', ()=>{ setEquipped(shopTab,item.id); saveGame(); applyCosmetics(); renderShop(); });
+    } else {
+      btn.textContent = 'BUY';
+      btn.disabled = save.coins<item.price;
+      btn.addEventListener('click', ()=>{
+        if(save.coins<item.price) return;
+        save.coins -= item.price;
+        owned.push(item.id);
+        setEquipped(shopTab,item.id);
+        saveGame(); applyCosmetics(); renderShop();
+      });
+    }
+    card.appendChild(btn);
+    grid.appendChild(card);
+  });
+}
+function openShop(){ document.getElementById('shopScreen').classList.add('show'); renderShop(); }
+function closeShop(){ document.getElementById('shopScreen').classList.remove('show'); }
+document.querySelectorAll('.shopTabBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    shopTab = btn.dataset.tab;
+    document.querySelectorAll('.shopTabBtn').forEach(b=>b.classList.toggle('active', b===btn));
+    renderShop();
+  });
+});
+document.getElementById('shopCloseBtn').addEventListener('click', closeShop);
+document.getElementById('shopBtn').addEventListener('click', openShop);
+document.getElementById('shopBtnVictory').addEventListener('click', openShop);
+document.getElementById('shopBtnElim').addEventListener('click', openShop);
+updateCoinsUI();
+document.getElementById('lobbyWins').textContent = save.stats.wins;
+document.getElementById('lobbyElims').textContent = save.stats.eliminations;
 
 /* ============================================================
    MAIN LOOP
@@ -1789,6 +2053,7 @@ function animate(){
       updatePrompt(dt);
       advanceStorm(dt);
       updateBots(dt,t);
+      updateChallenges();
       camera.fov = THREE.MathUtils.lerp(camera.fov, aiming?45:68, 0.15);
       camera.updateProjectionMatrix();
     }
