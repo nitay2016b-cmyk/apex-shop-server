@@ -131,6 +131,11 @@
   #countdownWrap.show{display:flex;}
   #countdownNum{font-size:120px;font-weight:900;color:#fff;text-shadow:0 0 40px var(--accent);}
 
+  #lockHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:80;display:none;
+    pointer-events:none;color:#fff;font-size:15px;font-weight:700;letter-spacing:2px;text-align:center;
+    padding:16px 30px;background:rgba(10,8,20,0.75);border:1px solid rgba(255,255,255,0.15);border-radius:10px;}
+  #lockHint.show{display:block;}
+
   /* ===== END SCREENS ===== */
   .endScreen{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;
     background:rgba(6,4,14,0.88);backdrop-filter:blur(6px);}
@@ -185,6 +190,7 @@
 </div>
 
 <div id="countdownWrap"><div id="countdownNum">3</div></div>
+<div id="lockHint">🖱 CLICK TO RE-LOCK MOUSE</div>
 
 <div id="hud">
   <div id="vignette"></div>
@@ -976,14 +982,22 @@ window.addEventListener('keydown', e=>{
 });
 window.addEventListener('keyup', e=>{ keys[e.code]=false; });
 
+const ACTIVE_PHASES = ['bus','freefall','glide','ground'];
 renderer.domElement.addEventListener('mousedown', e=>{
   if(isTouch) return;
-  if(player.phase!=='ground') return;
+  if(!ACTIVE_PHASES.includes(player.phase)) return;
   if(document.pointerLockElement!==renderer.domElement){ renderer.domElement.requestPointerLock(); return; }
+  if(player.phase!=='ground') return;
   if(e.button===0){ if(player.buildMode) placePiece(); else { mouseDown=true; semiAutoLock=false; } }
   if(e.button===2) aiming = true;
 });
 window.addEventListener('mouseup', e=>{ if(e.button===0){ mouseDown=false; semiAutoLock=false; } if(e.button===2) aiming=false; });
+document.addEventListener('pointerlockchange', ()=>{
+  const locked = document.pointerLockElement===renderer.domElement;
+  const hint = document.getElementById('lockHint');
+  hint.classList.toggle('show', !locked && !isTouch && ACTIVE_PHASES.includes(player.phase));
+  if(!locked){ mouseDown=false; aiming=false; }
+});
 renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
 window.addEventListener('mousemove', e=>{
   if(document.pointerLockElement===renderer.domElement){
@@ -1638,6 +1652,7 @@ lobbyChar.weaponMount.add(lobbyWeapon);
 const clock = new THREE.Clock();
 document.getElementById('dropBtn').addEventListener('click', ()=>{
   document.getElementById('lobby').style.display='none';
+  if(!isTouch) renderer.domElement.requestPointerLock();
   startSkydive();
 });
 
