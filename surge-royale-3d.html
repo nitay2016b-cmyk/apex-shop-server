@@ -289,6 +289,7 @@ const TREE_COUNT = LOW_QUALITY ? 110 : 210;
 const ROCK_COUNT = LOW_QUALITY ? 40 : 70;
 const PICKUP_COUNT = LOW_QUALITY ? 30 : 50;
 const CLOUD_COUNT = LOW_QUALITY ? 14 : 26;
+const HOUSE_COUNT = LOW_QUALITY ? 14 : 24;
 const SHADOW_MAP_SIZE = LOW_QUALITY ? 1024 : 2048;
 
 /* ============================================================
@@ -335,21 +336,21 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 0.92;
 document.body.appendChild(renderer.domElement);
 
 const composer = new THREE.EffectComposer(renderer);
 composer.addPass(new THREE.RenderPass(scene, camera));
 const bloomRes = LOW_QUALITY ? new THREE.Vector2(window.innerWidth*0.6, window.innerHeight*0.6) : new THREE.Vector2(window.innerWidth, window.innerHeight);
-const bloomPass = new THREE.UnrealBloomPass(bloomRes, 0.55, 0.55, 0.72);
+const bloomPass = new THREE.UnrealBloomPass(bloomRes, 0.32, 0.4, 0.86);
 composer.addPass(bloomPass);
 
 /* ============================================================
    LIGHTING
    ============================================================ */
-const hemi = new THREE.HemisphereLight(0xbcd8ff, 0x6a5a3a, 0.65);
+const hemi = new THREE.HemisphereLight(0xbcd8ff, 0x6a5a3a, 0.55);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffe6c2, 1.35);
+const sun = new THREE.DirectionalLight(0xffe6c2, 1.05);
 sun.castShadow = true;
 sun.shadow.mapSize.set(SHADOW_MAP_SIZE,SHADOW_MAP_SIZE);
 sun.shadow.camera.left=-55; sun.shadow.camera.right=55; sun.shadow.camera.top=55; sun.shadow.camera.bottom=-55;
@@ -376,9 +377,9 @@ const skyMat = new THREE.ShaderMaterial({
       float h = normalize(vPos).y;
       vec3 col = h>0.0 ? mix(midColor, topColor, pow(h,0.7)) : mix(midColor, botColor, pow(clamp(-h*2.5,0.0,1.0),0.8));
       float sunAmt = pow(max(dot(normalize(vPos), normalize(sunDir)),0.0), 340.0);
-      col += vec3(1.0,0.9,0.6)*sunAmt*3.0;
+      col += vec3(1.0,0.9,0.6)*sunAmt*1.5;
       float glow = pow(max(dot(normalize(vPos), normalize(sunDir)),0.0), 8.0);
-      col += vec3(1.0,0.75,0.4)*glow*0.35;
+      col += vec3(1.0,0.75,0.4)*glow*0.18;
       gl_FragColor = vec4(col,1.0);
     }`
 });
@@ -588,7 +589,7 @@ rockInst.count = rockCount;
    ============================================================ */
 const chestList = [];
 const chestBaseMat = new THREE.MeshStandardMaterial({color:0x6b4a2a, roughness:0.7, metalness:0.2});
-const chestGoldMat = new THREE.MeshStandardMaterial({color:0xffb020, roughness:0.3, metalness:0.7, emissive:0xffb020, emissiveIntensity:0.9});
+const chestGoldMat = new THREE.MeshStandardMaterial({color:0xffb020, roughness:0.3, metalness:0.7, emissive:0xffb020, emissiveIntensity:0.5});
 
 function spawnChest(x,z){
   const y = terrainHeight(x,z);
@@ -615,6 +616,25 @@ for(let i=0;i<10;i++){
   spawnChest(Math.cos(a)*r, Math.sin(a)*r);
 }
 
+/* Standalone houses scattered across the rest of the island, away from the
+   named POIs, so the world doesn't feel empty between them. Some get a
+   nearby chest of their own. */
+const standaloneHouses = [];
+for(let i=0;i<HOUSE_COUNT*4 && standaloneHouses.length<HOUSE_COUNT;i++){
+  const a = Math.random()*Math.PI*2, r = Math.random()*ISLAND_RADIUS*0.9;
+  const x = Math.cos(a)*r, z = Math.sin(a)*r;
+  if(islandFalloff(x,z)<0.55) continue;
+  if(tooCloseToPOI(x,z,45)) continue;
+  let tooCloseToHouse = false;
+  for(const h of standaloneHouses){ if(Math.hypot(x-h.x,z-h.z)<18){ tooCloseToHouse=true; break; } }
+  if(tooCloseToHouse) continue;
+  const w=5+Math.random()*3, d=5+Math.random()*3, h=3.5+Math.random()*2;
+  const mat = Math.random()<0.5?wallMat1:wallMat2;
+  const fp = buildStructure(x,z,w,d,h,mat);
+  standaloneHouses.push(fp);
+  if(Math.random()<0.4) spawnChest(x+(Math.random()-0.5)*4, z+(Math.random()-0.5)*4);
+}
+
 /* ============================================================
    FLOOR LOOT (ammo / shield / medkit / materials)
    ============================================================ */
@@ -628,7 +648,7 @@ const PICKUP_DEFS = {
 function spawnPickup(type,x,z){
   const def = PICKUP_DEFS[type];
   const y = terrainHeight(x,z);
-  const mat = new THREE.MeshStandardMaterial({color:def.color, emissive:def.color, emissiveIntensity:1.1, roughness:0.3, metalness:0.4});
+  const mat = new THREE.MeshStandardMaterial({color:def.color, emissive:def.color, emissiveIntensity:0.6, roughness:0.3, metalness:0.4});
   const mesh = new THREE.Mesh(def.geo(), mat);
   mesh.position.set(x,y+0.7,z);
   scene.add(mesh);
@@ -651,8 +671,26 @@ const WEAPONS = {
   burst:   {name:'BURST RIFLE', rarity:'rare', dmg:24, fireRate:0.17, mag:24, reserve:96, reload:1.8, spread:0.016, auto:true, color:0x3aa0ff},
   shotgun: {name:'SHOTGUN', rarity:'epic', dmg:14, pellets:8, fireRate:0.75, mag:6, reserve:24, reload:2.3, spread:0.09, auto:false, color:0xb45cff},
   sniper:  {name:'SNIPER', rarity:'legendary', dmg:95, fireRate:1.35, mag:5, reserve:20, reload:2.6, spread:0.002, auto:false, color:0xffb020, scoped:true},
+  pickaxe: {name:'PICKAXE', rarity:'common', dmg:35, fireRate:0.55, range:2.4, melee:true, color:0x00e0a0},
 };
 const WEAPON_KEYS = Object.keys(WEAPONS);
+const GUN_KEYS = WEAPON_KEYS.filter(k=>!WEAPONS[k].melee);
+
+function makePickaxeMesh(){
+  const g = new THREE.Group();
+  const handleMat = new THREE.MeshStandardMaterial({color:0x5a3d22, roughness:0.85});
+  const headMat = new THREE.MeshStandardMaterial({color:0xb0b6bd, roughness:0.35, metalness:0.85});
+  const accentMat = new THREE.MeshStandardMaterial({color:0x00e0a0, emissive:0x00e0a0, emissiveIntensity:0.5, roughness:0.3});
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.035,0.55,6), handleMat);
+  handle.rotation.x = Math.PI/2.4; g.add(handle);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.09,0.09), headMat);
+  head.position.set(0,0.24,-0.06); g.add(head);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05,0.16,4), headMat);
+  tip.rotation.z = Math.PI/2; tip.position.set(0.17,0.24,-0.06); g.add(tip);
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.3,0.02), accentMat);
+  strip.rotation.x = Math.PI/2.4; strip.position.set(0,0.1,-0.03); g.add(strip);
+  return g;
+}
 
 function makeWeaponMesh(key){
   const w = WEAPONS[key];
@@ -737,7 +775,7 @@ const player = {
   eliminations: 0,
   damageDealt: 0,
   startTime: 0,
-  weapons: {pistol:{ammo:16}},
+  weapons: {pickaxe:{ammo:Infinity}, pistol:{ammo:16}},
   currentWeapon: 'pistol',
   ammoReserve: {pistol:64, smg:0, burst:0, shotgun:0, sniper:0},
   reloading: false,
@@ -754,7 +792,7 @@ scene.add(playerModel.root);
 let currentWeaponMesh = null;
 function refreshWeaponMesh(){
   if(currentWeaponMesh) playerModel.weaponMount.remove(currentWeaponMesh);
-  currentWeaponMesh = makeWeaponMesh(player.currentWeapon);
+  currentWeaponMesh = player.currentWeapon==='pickaxe' ? makePickaxeMesh() : makeWeaponMesh(player.currentWeapon);
   currentWeaponMesh.rotation.set(0,Math.PI/2,0);
   currentWeaponMesh.position.set(0,-0.02,0.08);
   playerModel.weaponMount.add(currentWeaponMesh);
@@ -806,7 +844,7 @@ function spawnBot(){
   const y = terrainHeight(x,z);
   const model = makeCharacter(BOT_COLORS[Math.floor(Math.random()*BOT_COLORS.length)], 0xff8844);
   scene.add(model.root);
-  const wKey = WEAPON_KEYS[Math.floor(Math.random()*3)];
+  const wKey = GUN_KEYS[Math.floor(Math.random()*3)];
   const wmesh = makeWeaponMesh(wKey);
   wmesh.rotation.set(0,Math.PI/2,0); wmesh.position.set(0,-0.02,0.08);
   model.weaponMount.add(wmesh);
@@ -1015,7 +1053,7 @@ function selectWeaponSlot(i){
 function startReload(){
   const w = WEAPONS[player.currentWeapon];
   const held = player.weapons[player.currentWeapon];
-  if(!held || player.reloading || held.ammo>=w.mag || player.ammoReserve[player.currentWeapon]<=0) return;
+  if(!held || w.melee || player.reloading || held.ammo>=w.mag || player.ammoReserve[player.currentWeapon]<=0) return;
   player.reloading = true; player.reloadT = w.reload;
 }
 function onSpacePress(){
@@ -1107,7 +1145,7 @@ function tryInteract(){
 function openChest(c){
   c.opened = true;
   c.lid.rotation.x = -1.9;
-  const key = WEAPON_KEYS[Math.floor(Math.random()*WEAPON_KEYS.length)];
+  const key = GUN_KEYS[Math.floor(Math.random()*GUN_KEYS.length)];
   if(!player.weapons[key]) player.weapons[key] = {ammo:WEAPONS[key].mag};
   player.ammoReserve[key] += Math.floor(WEAPONS[key].mag*2);
   player.shield = Math.min(100, player.shield+25);
@@ -1144,8 +1182,29 @@ function harvestNode(node,dt){
 /* ============================================================
    SHOOTING
    ============================================================ */
+function meleeAttack(w){
+  if(player.fireCooldown>0) return;
+  player.fireCooldown = w.fireRate;
+  playerModel.armR.shoulder.rotation.x = -0.6;
+  const origin = new THREE.Vector3(); camera.getWorldPosition(origin);
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  const raycaster = new THREE.Raycaster(origin, dir, 0.1, w.range);
+  const targets = [];
+  for(const b of bots) if(b.alive) targets.push(b.model.torso, b.model.neck.children[0]);
+  const hits = raycaster.intersectObjects(targets, false);
+  if(hits.length){
+    const hitBot = bots.find(b=>b.alive && (hits[0].object===b.model.torso || hits[0].object===b.model.neck.children[0]));
+    if(hitBot){
+      const critical = hits[0].object===hitBot.model.neck.children[0];
+      damageBot(hitBot, w.dmg*(critical?1.6:1), critical);
+      showHitmarker();
+    }
+  }
+  spawnBurst(origin.clone().add(dir.clone().multiplyScalar(1.2)), 0xffffff, 6, 2, 0.05, 0.15);
+}
 function fireWeapon(){
   const w = WEAPONS[player.currentWeapon];
+  if(w.melee){ meleeAttack(w); return; }
   const held = player.weapons[player.currentWeapon];
   if(!held) return;
   if(player.reloading) return;
@@ -1485,8 +1544,13 @@ function updateAmmoUI(){
   const held = player.weapons[player.currentWeapon];
   document.getElementById('wpName').textContent = w.name;
   document.getElementById('wpName').style.color = rarityColor(w.rarity);
-  document.getElementById('ammoNum').textContent = held? held.ammo : '—';
-  document.getElementById('ammoRes').textContent = held? player.ammoReserve[player.currentWeapon] : '';
+  if(w.melee){
+    document.getElementById('ammoNum').textContent = '∞';
+    document.getElementById('ammoRes').textContent = 'MELEE';
+  } else {
+    document.getElementById('ammoNum').textContent = held? held.ammo : '—';
+    document.getElementById('ammoRes').textContent = held? player.ammoReserve[player.currentWeapon] : '';
+  }
   document.getElementById('reloadLbl').textContent = player.reloading? 'RELOADING…' : '';
   renderSlotBar();
 }
@@ -1496,9 +1560,10 @@ function renderSlotBar(){
   const owned = Object.keys(player.weapons);
   owned.forEach((k,i)=>{
     const w = WEAPONS[k];
+    const ammoDisplay = w.melee? '∞' : player.weapons[k].ammo;
     const d = document.createElement('div');
     d.className = 'slot'+(k===player.currentWeapon?' active':'');
-    d.innerHTML = `<div class="num">${i+1}</div><div class="rc r-${w.rarity}"></div>${w.name.split(' ')[0]}<div class="ammo">${player.weapons[k].ammo}</div>`;
+    d.innerHTML = `<div class="num">${i+1}</div><div class="rc r-${w.rarity}"></div>${w.name.split(' ')[0]}<div class="ammo">${ammoDisplay}</div>`;
     bar.appendChild(d);
   });
 }
@@ -1530,8 +1595,26 @@ function updateStormLabel(){
   else label='SAFE '+Math.ceil(storm.timer)+'s';
   if(label!==stormLabelCache){ document.getElementById('stormVal').textContent=label; stormLabelCache=label; }
 }
+let harvestVisualActive = false, harvestMesh = null;
+function setHarvestVisual(active){
+  if(active===harvestVisualActive) return;
+  harvestVisualActive = active;
+  if(active){
+    if(!harvestMesh){
+      harvestMesh = makePickaxeMesh();
+      harvestMesh.rotation.set(0,Math.PI/2,0); harvestMesh.position.set(0,-0.02,0.08);
+      playerModel.weaponMount.add(harvestMesh);
+    }
+    harvestMesh.visible = true;
+    if(currentWeaponMesh) currentWeaponMesh.visible = false;
+  } else {
+    if(harvestMesh) harvestMesh.visible = false;
+    if(currentWeaponMesh) currentWeaponMesh.visible = true;
+  }
+}
 function updatePrompt(dt){
   const found = findNearestInteractable();
+  let harvesting = false;
   if(found && found.type==='chest'){ promptBox.textContent='[E] OPEN CHEST'; promptBox.classList.add('show'); harvestWrap.classList.remove('show'); player.harvestTarget=null; }
   else if(found && found.type==='pickup'){ collectPickup(found.obj); promptBox.classList.remove('show'); }
   else if(found && found.type==='resource'){
@@ -1542,8 +1625,11 @@ function updatePrompt(dt){
       harvestNode(found.obj, dt);
       harvestWrap.classList.add('show');
       harvestFill.style.width = (100-(found.obj.hp/found.obj.maxHp)*100)+'%';
+      harvesting = true;
     } else { harvestWrap.classList.remove('show'); }
   } else { promptBox.classList.remove('show'); harvestWrap.classList.remove('show'); }
+  setHarvestVisual(harvesting);
+  if(harvesting) playerModel.armR.shoulder.rotation.x = -0.3 + Math.sin(performance.now()*0.02)*0.5;
 }
 
 /* ============================================================
