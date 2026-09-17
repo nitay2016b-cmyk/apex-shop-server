@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="he" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>APEX RIDE — First-Person Freeride BMX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<style>
+  :root{
+    --accent:#3ad1ff;
+    --accent2:#ff5d3a;
+    --gold:#ffce45;
+    --green:#5cff8a;
+    --red:#ff4b4b;
+    --glass:rgba(8,12,18,0.62);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Segoe UI',Arial,sans-serif;user-select:none;
+    touch-action:none;overscroll-behavior:none;}
+  canvas{display:block;}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* ===================== HUD (top) ===================== */
+  #hud{position:fixed;inset:0;z-index:15;pointer-events:none;}
+  #topBar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:10px 14px;pointer-events:none;}
+  .pill{background:var(--glass);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.12);
+    border-radius:12px;padding:6px 12px;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;}
+  #moneyPill{color:var(--gold);}
+  #speedWrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;}
+  #speedVal{font-size:40px;font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.8);line-height:1;}
+  #speedUnit{font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:2px;}
+  #distancePill{position:fixed;top:10px;left:50%;transform:translateX(-50%);}
+
+  #partsRow{position:fixed;top:54px;right:14px;display:flex;flex-direction:column;gap:6px;pointer-events:none;align-items:flex-end;}
+  .partChip{background:var(--glass);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:4px 9px;
+    color:#dfe9f5;font-size:12px;display:flex;align-items:center;gap:6px;min-width:120px;justify-content:flex-end;}
+  .partChip .dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex-shrink:0;}
+  .partChip.warn .dot{background:var(--gold);}
+  .partChip.bad .dot{background:var(--red);box-shadow:0 0 6px var(--red);}
+  .partChip.flat{animation:flatPulse 0.6s infinite;}
+  @keyframes flatPulse{0%,100%{background:rgba(255,60,60,0.35);}50%{background:rgba(255,60,60,0.75);}}
+  .partChip .bar{width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,0.15);overflow:hidden;}
+  .partChip .bar i{display:block;height:100%;background:var(--green);}
+
+  #trickFeed{position:fixed;top:110px;left:14px;display:flex;flex-direction:column;gap:4px;pointer-events:none;}
+  .trickPop{color:#fff;font-weight:800;font-size:16px;text-shadow:0 2px 6px rgba(0,0,0,0.8);
+    animation:popIn 1.4s ease forwards;}
+  @keyframes popIn{0%{opacity:0;transform:translateY(6px);}10%{opacity:1;transform:translateY(0);}75%{opacity:1;}100%{opacity:0;transform:translateY(-10px);}}
+  .trickPop.cash{color:var(--gold);}
+  .trickPop.crash{color:var(--red);}
+
+  #toast{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;font-size:22px;
+    text-align:center;text-shadow:0 2px 10px rgba(0,0,0,0.9);pointer-events:none;opacity:0;z-index:16;
+    background:var(--glass);padding:10px 22px;border-radius:14px;border:1px solid rgba(255,255,255,0.15);}
+  #toast.show{animation:toastAnim 2.1s ease forwards;}
+  @keyframes toastAnim{0%{opacity:0;transform:translate(-50%,-40%) scale(0.85);}12%{opacity:1;transform:translate(-50%,-50%) scale(1);}80%{opacity:1;}100%{opacity:0;transform:translate(-50%,-56%) scale(0.95);}}
+
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:14;box-shadow:inset 0 0 0 0 rgba(255,0,0,0);transition:box-shadow .08s;}
+  #vignette.hit{box-shadow:inset 0 0 140px 40px rgba(255,20,20,0.55);}
+  #flatWobble{position:fixed;inset:0;pointer-events:none;z-index:1;}
+
+  /* ===================== Job panel ===================== */
+  #jobPanel{position:fixed;top:10px;right:14px;width:200px;background:var(--glass);border:1px solid rgba(255,255,255,0.15);
+    border-radius:12px;padding:10px 12px;color:#fff;display:none;pointer-events:none;z-index:15;}
+  #jobPanel.show{display:block;}
+  #jobPanel h4{font-size:12px;color:var(--accent);letter-spacing:1px;margin-bottom:4px;}
+  #jobPanel .row{display:flex;justify-content:space-between;font-size:13px;margin-top:3px;}
+  #jobTimeBar{height:6px;border-radius:3px;background:rgba(255,255,255,0.15);margin-top:6px;overflow:hidden;}
+  #jobTimeBar i{display:block;height:100%;background:var(--accent);width:100%;}
+
+  #jobOffer{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--glass);
+    border:1px solid rgba(255,255,255,0.18);border-radius:14px;padding:12px 16px;color:#fff;text-align:center;
+    display:none;z-index:17;pointer-events:auto;min-width:240px;}
+  #jobOffer.show{display:block;}
+  #jobOffer h4{color:var(--gold);font-size:14px;margin-bottom:6px;}
+  #jobOffer .row{font-size:13px;margin:2px 0;color:#dfe9f5;}
+  #jobOffer .btns{display:flex;gap:8px;margin-top:10px;}
+  #jobOffer button{flex:1;padding:8px 0;border:none;border-radius:8px;font-weight:800;font-size:13px;}
+  #jobAccept{background:var(--green);color:#04270f;}
+  #jobDecline{background:rgba(255,255,255,0.15);color:#fff;}
+
+  /* ===================== Pump prompt ===================== */
+  #pumpPrompt{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);background:rgba(255,40,40,0.85);
+    border-radius:12px;padding:8px 16px;color:#fff;font-weight:800;font-size:14px;display:none;z-index:17;text-align:center;}
+  #pumpPrompt.show{display:block;}
+  #pumpGaugeWrap{position:fixed;bottom:200px;left:50%;transform:translateX(-50%);width:220px;display:none;z-index:17;}
+  #pumpGaugeWrap.show{display:block;}
+  #pumpGaugeBar{height:14px;border-radius:7px;background:rgba(0,0,0,0.5);border:2px solid rgba(255,255,255,0.3);overflow:hidden;}
+  #pumpGaugeBar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--gold));width:0%;}
+  #pumpGaugeWrap span{display:block;text-align:center;color:#fff;font-size:11px;margin-top:4px;font-weight:700;}
+
+  /* ===================== Start screen ===================== */
+  #startScreen{position:fixed;inset:0;z-index:40;background:radial-gradient(circle at 50% 30%,#1c3a52,#050a12 75%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:20px;}
+  #startScreen h1{font-size:clamp(28px,6vw,52px);font-weight:900;letter-spacing:3px;
+    background:linear-gradient(90deg,var(--accent),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 4px 30px rgba(58,209,255,0.3);}
+  #startScreen .sub{color:rgba(255,255,255,0.75);margin-top:6px;font-size:14px;letter-spacing:2px;}
+  #platformRow{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;}
+  .platChip{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:20px;
+    padding:6px 14px;font-size:12px;color:#cfe6f5;}
+  #instructions{margin-top:22px;max-width:520px;background:var(--glass);border-radius:14px;padding:14px 18px;
+    font-size:13px;line-height:1.7;color:#dfe9f5;text-align:right;border:1px solid rgba(255,255,255,0.1);}
+  #instructions b{color:var(--accent);}
+  #startBtn{margin-top:26px;padding:14px 46px;border:none;border-radius:30px;font-size:18px;font-weight:900;
+    background:linear-gradient(90deg,var(--accent2),var(--gold));color:#1a0d00;letter-spacing:1px;
+    box-shadow:0 8px 30px rgba(255,93,58,0.4);}
+  #startBtn:active{transform:scale(0.96);}
+  #resumeNote{margin-top:10px;font-size:12px;color:var(--green);min-height:14px;}
+
+  /* ===================== Pause / Shop overlay ===================== */
+  #overlay{position:fixed;inset:0;z-index:30;background:rgba(4,8,14,0.88);display:none;
+    align-items:center;justify-content:center;padding:16px;}
+  #overlay.show{display:flex;}
+  #panelBox{width:min(560px,94vw);max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,#101a26,#0a121c);
+    border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:18px 18px 22px;color:#fff;}
+  #panelBox h2{font-size:20px;color:var(--accent);letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;}
+  #panelMoney{color:var(--gold);font-size:16px;}
+  .tabs{display:flex;gap:8px;margin:14px 0 10px;}
+  .tabBtn{flex:1;padding:9px 0;border-radius:9px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);
+    color:#cfe6f5;font-weight:700;font-size:13px;}
+  .tabBtn.active{background:var(--accent);color:#04202c;}
+  .partRow{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+    padding:10px 12px;margin-bottom:9px;}
+  .partRow .top{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;}
+  .partRow .status{font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;}
+  .partRow .bar{height:7px;border-radius:4px;background:rgba(255,255,255,0.12);margin-top:7px;overflow:hidden;}
+  .partRow .bar i{display:block;height:100%;}
+  .partRow .actions{display:flex;gap:8px;margin-top:9px;}
+  .partRow button{flex:1;padding:8px 0;border:none;border-radius:8px;font-weight:800;font-size:12.5px;}
+  .btnRepair{background:var(--accent2);color:#2a0800;}
+  .btnRepair:disabled{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);}
+  .btnUpgrade{background:linear-gradient(90deg,#7d5cff,#3ad1ff);color:#06121c;}
+  .btnUpgrade:disabled{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);}
+  #closeOverlay{position:sticky;bottom:0;margin-top:12px;width:100%;padding:12px 0;border:none;border-radius:10px;
+    background:var(--green);color:#04270f;font-weight:900;font-size:14px;}
+
+  /* ===================== Touch controls ===================== */
+  #touchLayer{position:fixed;inset:0;z-index:12;display:none;pointer-events:none;}
+  #touchLayer.show{display:block;}
+  #joyBase{position:fixed;left:22px;bottom:26px;width:120px;height:120px;border-radius:50%;
+    background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.25);pointer-events:auto;}
+  #joyStick{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
+    background:rgba(255,255,255,0.35);transform:translate(-50%,-50%);}
+  .touchBtn{position:fixed;pointer-events:auto;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:900;color:#fff;border:2px solid rgba(255,255,255,0.3);}
+  #btnBoost{right:24px;bottom:96px;width:74px;height:74px;background:rgba(92,255,138,0.28);font-size:12px;}
+  #btnBrake{right:108px;bottom:26px;width:64px;height:64px;background:rgba(255,75,75,0.28);font-size:11px;}
+  .trickBtn{width:52px;height:52px;background:rgba(58,209,255,0.28);font-size:10px;position:fixed;pointer-events:auto;
+    border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;border:2px solid rgba(255,255,255,0.3);font-weight:800;}
+  #trickUpBtn{right:170px;bottom:118px;}
+  #trickDownBtn{right:170px;bottom:50px;}
+  #trickLeftBtn{right:236px;bottom:84px;}
+  #trickRightBtn{right:104px;bottom:172px;}
+  #btnPumpTouch{right:24px;bottom:96px;width:74px;height:74px;background:rgba(255,206,69,0.85);font-size:11px;display:none;
+    position:fixed;pointer-events:auto;border-radius:50%;align-items:center;justify-content:center;color:#1a0d00;font-weight:900;
+    border:2px solid #fff;z-index:18;}
+  #btnPumpTouch.show{display:flex;}
+  #iconRow{position:fixed;top:54px;left:14px;display:flex;gap:8px;pointer-events:auto;}
+  .iconBtn{width:38px;height:38px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.18);
+    color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;}
+
+  #gpStatus{position:fixed;bottom:8px;right:8px;font-size:11px;color:rgba(255,255,255,0.5);z-index:15;display:none;}
+  #gpStatus.show{display:block;}
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1>APEX RIDE</h1>
+  <div class="sub">FIRST-PERSON FREERIDE BMX</div>
+  <div id="platformRow">
+    <div class="platChip">🖥️ PC</div>
+    <div class="platChip">📱 Mobile</div>
+    <div class="platChip">🎮 PlayStation controller</div>
+    <div class="platChip">🎮 Xbox controller</div>
+  </div>
+  <div id="instructions">
+    <div>🚴 <b>היגוי:</b> ג'ויסטיק / A-D / חץ שמאל-ימין / סטיק שמאלי בג'ויפד</div>
+    <div>⚡ <b>בוסט:</b> כפתור ירוק / W / חץ למעלה / R2-RT</div>
+    <div>🛑 <b>בלימה:</b> כפתור אדום / S / חץ למטה / L2-LT</div>
+    <div>🤸 <b>טריקים באוויר:</b> 4 כפתורי טריק / I-J-K-L / Y-X-A-B בג'ויפד</div>
+    <div>🔧 <b>ניפוח צמיג:</b> כפתור משאבה כשהיא מופיעה / P / LB</div>
+    <div>🏪 <b>חנות תיקונים:</b> אייקון חנות / B / Start</div>
+    <div style="margin-top:6px;color:var(--gold);">קפצו על רמפות, תעשו טריקים באוויר, התחמקו ממכשולים — והיזהרו: צמיג יכול להתנפח לכם פתאום, בלי אזהרה מראש!</div>
+  </div>
+  <button id="startBtn">START RIDE</button>
+  <div id="resumeNote"></div>
+</div>
+
+<div id="touchLayer">
+  <div id="iconRow">
+    <div class="iconBtn" id="shopIconBtn">🏪</div>
+    <div class="iconBtn" id="jobIconBtn">📦</div>
+    <div class="iconBtn" id="pauseIconBtn">⏸</div>
+  </div>
+  <div id="joyBase"><div id="joyStick"></div></div>
+  <div class="touchBtn" id="btnBoost">BOOST</div>
+  <div class="touchBtn" id="btnBrake">BRAKE</div>
+  <div class="trickBtn" id="trickUpBtn">🦸<br>SUPER</div>
+  <div class="trickBtn" id="trickDownBtn">🌀<br>WHIP</div>
+  <div class="trickBtn" id="trickLeftBtn">🔄<br>BAR</div>
+  <div class="trickBtn" id="trickRightBtn">🤾<br>FLIP</div>
+  <div id="btnPumpTouch">🔧<br>PUMP</div>
+</div>
+
+<div id="hud">
+  <div id="topBar">
+    <div class="pill" id="moneyPill">💰 <span id="moneyVal">0</span></div>
+    <div class="pill" id="distancePill">📍 <span id="distVal">0</span> מ'</div>
+  </div>
+  <div id="partsRow"></div>
+  <div id="trickFeed"></div>
+  <div id="speedWrap">
+    <div id="speedVal">0</div>
+    <div id="speedUnit">KM/H</div>
+  </div>
+</div>
+
+<div id="jobPanel">
+  <h4>📦 משלוח פעיל</h4>
+  <div class="row"><span>מרחק שנותר</span><span id="jobDistLeft">0 מ'</span></div>
+  <div id="jobTimeBar"><i id="jobTimeBarInner"></i></div>
+</div>
+
+<div id="jobOffer">
+  <h4>הצעת עבודה חדשה 📦</h4>
+  <div class="row">מרחק: <b id="offerDist">-</b></div>
+  <div class="row">תשלום: <b id="offerPay" style="color:var(--gold);">-</b></div>
+  <div class="row">זמן מוקצב: <b id="offerTime">-</b></div>
+  <div class="btns">
+    <button id="jobAccept">קבל עבודה</button>
+    <button id="jobDecline">דחה</button>
+  </div>
+</div>
+
+<div id="pumpPrompt">⚠️ צמיג התנפח! עצור ולחץ PUMP</div>
+<div id="pumpGaugeWrap"><div id="pumpGaugeBar"><i id="pumpGaugeInner"></i></div><span>מנפח...</span></div>
+
+<div id="toast"></div>
+<div id="vignette"></div>
+<div id="gpStatus">🎮 בקר מחובר</div>
+
+<div id="overlay">
+  <div id="panelBox">
+    <h2>🏪 המוסך <span id="panelMoney">💰 0</span></h2>
+    <div class="tabs">
+      <button class="tabBtn active" id="tabRepair">תיקונים</button>
+      <button class="tabBtn" id="tabUpgrade">שדרוגים</button>
+    </div>
+    <div id="repairList"></div>
+    <div id="upgradeList" style="display:none;"></div>
+    <button id="closeOverlay">חזרה לרכיבה ▶</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+/* =========================================================
+   PLATFORM / INPUT DETECTION
+========================================================= */
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if (isTouch) document.getElementById('touchLayer').classList.add('show');
+
+/* =========================================================
+   AUDIO (tiny procedural sfx, no assets)
+========================================================= */
+const AudioSys = (() => {
+  let ctx = null;
+  function ensure(){ if(!ctx){ ctx = new (window.AudioContext||window.webkitAudioContext)(); } return ctx; }
+  function tone(freq, dur, type, gainV, freqEnd){
+    const c = ensure(); const t = c.currentTime;
+    const osc = c.createOscillator(); osc.type = type||'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t+dur);
+    const g = c.createGain(); g.gain.setValueAtTime(gainV||0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    osc.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t+dur+0.02);
+  }
+  return {
+    crash(){ tone(140,0.28,'sawtooth',0.28,40); },
+    trick(){ tone(500,0.12,'square',0.15,900); },
+    cash(){ tone(880,0.09,'square',0.12,1400); setTimeout(()=>tone(1200,0.1,'square',0.1,1800),60); },
+    flat(){ tone(90,0.4,'sawtooth',0.3,50); },
+    pumpTick(){ tone(300,0.05,'square',0.08,380); },
+    pumpDone(){ tone(600,0.15,'sine',0.18,1000); },
+    jobDone(){ tone(660,0.12,'square',0.15,1000); setTimeout(()=>tone(990,0.16,'square',0.15,1400),100); },
+    jobFail(){ tone(220,0.3,'sawtooth',0.2,90); },
+    ensure
+  };
+})();
+
+/* =========================================================
+   THREE.JS CORE SETUP
+========================================================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fd3f0);
+scene.fog = new THREE.FogExp2(0xb9dff2, 0.0105);
+
+const camera = new THREE.PerspectiveCamera(isTouch?80:76, window.innerWidth/window.innerHeight, 0.08, 500);
+camera.rotation.order = 'YXZ';
+scene.add(camera); // required so objects attached to the camera (the FPV handlebar rig) get rendered
+
+const renderer = new THREE.WebGLRenderer({antialias:!isTouch, powerPreference:"high-performance"});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch?1.5:2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const hemi = new THREE.HemisphereLight(0xdfeeff, 0x3a5a34, 0.85);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff3d6, 1.05);
+sun.position.set(-40, 60, 20);
+scene.add(sun);
+
+/* =========================================================
+   WORLD CONSTANTS
+========================================================= */
+const ROAD_HALF_WIDTH = 4.6;
+const LANE_X = [-3, 0, 3];
+const GRAVITY = -22;
+const CRUISE_SPEED = 13;
+const MAX_SPEED_BASE = 27;
+const MIN_SPEED = 3;
+const STEER_SPEED = 7.5;
+const PUMP_SPEED_THRESHOLD = 2.2;
+
+/* =========================================================
+   GROUND, ROAD MARKINGS, SCENERY (recycled pools)
+========================================================= */
+const groundGeo = new THREE.PlaneGeometry(60, 3000);
+const groundMat = new THREE.MeshLambertMaterial({color:0x4a4f46});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.set(0, 0, -1400);
+scene.add(ground);
+
+const roadGeo = new THREE.PlaneGeometry(ROAD_HALF_WIDTH*2, 3000);
+const roadMat = new THREE.MeshLambertMaterial({color:0x2b2e33});
+const road = new THREE.Mesh(roadGeo, roadMat);
+road.rotation.x = -Math.PI/2;
+road.position.set(0, 0.01, -1400);
+scene.add(road);
+
+function recenterLongPlanes(camZ){
+  if (ground.position.z - camZ > 1200) { ground.position.z = camZ - 300; road.position.z = camZ - 300; }
+}
+
+// dashed lane markers (recycled pool)
+const dashGeo = new THREE.BoxGeometry(0.18, 0.02, 1.6);
+const dashMat = new THREE.MeshBasicMaterial({color:0xffffff});
+const DASH_COUNT = 60, DASH_GAP = 6;
+const dashes = [];
+for (let i=0;i<DASH_COUNT;i++){
+  for (const lx of [-1.5, 1.5]){
+    const m = new THREE.Mesh(dashGeo, dashMat);
+    m.position.set(lx, 0.02, -i*DASH_GAP);
+    scene.add(m);
+    dashes.push(m);
+  }
+}
+// side poles for speed sensation (recycled pool)
+const poleGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.4, 6);
+const poleMat = new THREE.MeshLambertMaterial({color:0xd9542b});
+const POLE_COUNT = 26, POLE_GAP = 18;
+const poles = [];
+for (let i=0;i<POLE_COUNT;i++){
+  for (const side of [-1, 1]){
+    const m = new THREE.Mesh(poleGeo, poleMat);
+    m.position.set(side*(ROAD_HALF_WIDTH+0.6), 1.2, -i*POLE_GAP);
+    scene.add(m);
+    poles.push(m);
+  }
+}
+// background hills
+const hillMat = new THREE.MeshLambertMaterial({color:0x5c8a4a});
+for (let i=0;i<24;i++){
+  const h = 10+Math.random()*22;
+  const geo = new THREE.ConeGeometry(14+Math.random()*10, h, 7);
+  const m = new THREE.Mesh(geo, hillMat);
+  const side = Math.random()<0.5?-1:1;
+  m.position.set(side*(26+Math.random()*40), h/2-2, -Math.random()*3000);
+  scene.add(m);
+}
+
+/* =========================================================
+   FPV BIKE RIG (handlebar + arms attached to camera)
+========================================================= */
+const rig = new THREE.Group();
+camera.add(rig);
+const barMat = new THREE.MeshLambertMaterial({color:0x1c1c1c});
+const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.62,8), barMat);
+bar.rotation.z = Math.PI/2;
+bar.position.set(0,-0.24,-0.62);
+rig.add(bar);
+const gripMat = new THREE.MeshLambertMaterial({color:0x111111});
+for (const sx of [-1,1]){
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.12,8), gripMat);
+  grip.rotation.z = Math.PI/2;
+  grip.position.set(sx*0.31,-0.24,-0.62);
+  rig.add(grip);
+}
+const armMat = new THREE.MeshLambertMaterial({color:0xf0c9a0});
+const arms = [];
+for (const sx of [-1,1]){
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.06,0.5,7), armMat);
+  arm.position.set(sx*0.3,-0.16,-0.4);
+  arm.rotation.x = 0.9;
+  arm.rotation.z = sx*0.15;
+  rig.add(arm);
+  arms.push(arm);
+}
+const stemMat = new THREE.MeshLambertMaterial({color:0x333333});
+const stem = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.18,0.05), stemMat);
+stem.position.set(0,-0.34,-0.62);
+rig.add(stem);
+const wheelMat = new THREE.MeshLambertMaterial({color:0x0a0a0a});
+const frontWheel = new THREE.Mesh(new THREE.TorusGeometry(0.34,0.045,8,16), wheelMat);
+frontWheel.position.set(0,-0.62,-1.05);
+rig.add(frontWheel);
+
+/* =========================================================
+   OBSTACLE / RAMP GEOMETRY + POOLS
+========================================================= */
+function makeWedgeGeometry(W,L,H){
+  const A=[-W/2,0,-L/2], B=[W/2,0,-L/2], C=[W/2,0,L/2], D=[-W/2,0,L/2], E=[-W/2,H,L/2], F=[W/2,H,L/2];
+  const tris = [
+    A,B,C, A,C,D,   // bottom
+    D,C,F, D,F,E,   // back vertical
+    A,F,B, A,E,F,   // slope surface
+    A,D,E,          // left cap
+    B,F,C           // right cap
+  ];
+  const positions = new Float32Array(tris.length*3);
+  tris.forEach((v,i)=>{ positions[i*3]=v[0]; positions[i*3+1]=v[1]; positions[i*3+2]=v[2]; });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  geo.computeVertexNormals();
+  return geo;
+}
+const OBST_DEFS = {
+  cone:   { geo: new THREE.ConeGeometry(0.42,0.85,10), mat: new THREE.MeshLambertMaterial({color:0xff7a1a}), y:0.42, radius:0.65, lanes:1 },
+  barrel: { geo: new THREE.CylinderGeometry(0.5,0.5,1.1,12), mat: new THREE.MeshLambertMaterial({color:0xd43b3b}), y:0.55, radius:0.7, lanes:1 },
+  pothole:{ geo: new THREE.CircleGeometry(0.85,16), mat: new THREE.MeshBasicMaterial({color:0x14161a}), y:0.02, radius:0.75, lanes:1, flat:true },
+};
+const RAMP_W = 2.6, RAMP_L = 4.2, RAMP_H = 1.5;
+const rampGeo = makeWedgeGeometry(RAMP_W, RAMP_L, RAMP_H);
+const rampMat = new THREE.MeshLambertMaterial({color:0x3a6bd6, side:THREE.DoubleSide});
+
+const activeObstacles = []; // {mesh,type,x,z,handled,lanes}
+let nextSpawnDistance = 26;
+
+function spawnWave(distAheadFrom){
+  const laneCount = LANE_X.length;
+  const roll = Math.random();
+  if (roll < 0.32){
+    // single or double obstacle, at least one lane always free
+    const numBlocked = Math.random()<0.55 ? 1 : 2;
+    const laneIdx = [0,1,2];
+    for (let k=laneIdx.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [laneIdx[k],laneIdx[j]]=[laneIdx[j],laneIdx[k]]; }
+    const chosen = laneIdx.slice(0, Math.min(numBlocked, laneCount-1));
+    const types = ['cone','barrel','pothole'];
+    for (const li of chosen){
+      const type = types[Math.floor(Math.random()*types.length)];
+      spawnObstacle(type, LANE_X[li], -distAheadFrom + (Math.random()-0.5)*0.6);
+    }
+  } else if (roll < 0.62){
+    // ramp occupying 1-2 lanes, always at least one open lane
+    const startLane = Math.random()<0.5 ? 0 : 1;
+    const wide = Math.random()<0.45 && (startLane+1 < laneCount-0);
+    spawnRamp(LANE_X[startLane], -distAheadFrom, wide ? [startLane, startLane+1] : [startLane]);
+    if (wide && startLane+1 <= laneCount-1){
+      spawnRamp(LANE_X[startLane+1], -distAheadFrom, null, true); // companion visual piece uses same trigger lane list via shared logic below
+    }
+  } else {
+    // clear stretch, nothing spawned (breather)
+  }
+}
+function spawnObstacle(type, x, z){
+  const def = OBST_DEFS[type];
+  const mesh = new THREE.Mesh(def.geo, def.mat);
+  mesh.position.set(x, def.y, z);
+  if (type==='pothole') mesh.rotation.x = -Math.PI/2;
+  scene.add(mesh);
+  activeObstacles.push({mesh, type, x, z, handled:false, radius:def.radius, isRamp:false});
+}
+const rampLaneGroups = []; // track combined lane occupancy per ramp cluster for jump trigger width
+function spawnRamp(x, z, laneIdxList, isCompanion){
+  const mesh = new THREE.Mesh(rampGeo, rampMat);
+  mesh.position.set(x, 0, z);
+  scene.add(mesh);
+  const entry = {mesh, type:'ramp', x, z, handled:false, radius: RAMP_W/2+0.15, isRamp:true};
+  activeObstacles.push(entry);
+}
+
+function updateObstacles(bike, dt){
+  for (let i=activeObstacles.length-1;i>=0;i--){
+    const o = activeObstacles[i];
+    // despawn behind player
+    if (o.mesh.position.z > bike.z + 12){
+      scene.remove(o.mesh);
+      activeObstacles.splice(i,1);
+      continue;
+    }
+    if (o.handled) continue;
+    const dz = Math.abs(o.mesh.position.z - bike.z);
+    const dx = Math.abs(o.mesh.position.x - bike.x);
+    if (o.isRamp){
+      if (dz < RAMP_L*0.55 && dx < o.radius){
+        if (!bike.airborne && bike.crashedTimer<=0){
+          launchBike(bike);
+          o.handled = true;
+        }
+      }
+    } else {
+      if (dz < 0.65 && dx < o.radius){
+        if (!bike.airborne && bike.crashedTimer<=0){
+          crashBike(bike, 'obstacle');
+          o.handled = true;
+        } else if (bike.airborne) {
+          o.handled = true; // cleared by jumping over it
+        }
+      }
+    }
+  }
+}
+
+/* =========================================================
+   GAME / PLAYER STATE
+========================================================= */
+const G = {
+  started:false, paused:false, shopOpen:false,
+  distance:0, rideTime:0,
+  money:60, bestTrickScore:0,
+};
+const bike = {
+  x:0, z:0, y:0, vy:0, speed: CRUISE_SPEED,
+  lean:0, airborne:false, airTime:0, crashedTimer:0,
+  trick:null, comboCount:0,
+};
+const parts = {
+  frontTire: {flat:false, burst:false, wear:0, tier:0, nextFlatAt:0, flatRideAccum:0},
+  rearTire:  {flat:false, burst:false, wear:0, tier:0, nextFlatAt:0, flatRideAccum:0},
+  chain:     {wear:0, tier:0},
+  brakes:    {wear:0, tier:0},
+  suspension:{wear:0, tier:0},
+};
+let job = null;
+let pendingJobOffer = null;
+let jobOfferTimer = null;
+
+function tireFlatRange(tier){
+  return [ [25*60,42*60], [38*60,60*60], [55*60,85*60] ][Math.min(tier,2)];
+}
+function scheduleFlat(key){
+  const [lo,hi] = tireFlatRange(parts[key].tier);
+  parts[key].nextFlatAt = G.rideTime + lo + Math.random()*(hi-lo);
+}
+
+/* =========================================================
+   SAVE / LOAD
+========================================================= */
+function saveGame(){
+  try{
+    const data = { money:G.money, bestTrickScore:G.bestTrickScore,
+      parts:{ frontTire:{wear:parts.frontTire.wear,tier:parts.frontTire.tier},
+              rearTire:{wear:parts.rearTire.wear,tier:parts.rearTire.tier},
+              chain:{wear:parts.chain.wear,tier:parts.chain.tier},
+              brakes:{wear:parts.brakes.wear,tier:parts.brakes.tier},
+              suspension:{wear:parts.suspension.wear,tier:parts.suspension.tier} } };
+    localStorage.setItem('apexRideSave', JSON.stringify(data));
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const raw = localStorage.getItem('apexRideSave');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    G.money = data.money ?? 60;
+    G.bestTrickScore = data.bestTrickScore ?? 0;
+    if (data.parts){
+      for (const k of Object.keys(parts)){
+        if (data.parts[k]){
+          parts[k].wear = data.parts[k].wear||0;
+          parts[k].tier = data.parts[k].tier||0;
+        }
+      }
+    }
+    return true;
+  }catch(e){ return false; }
+}
+const hadSave = loadGame();
+if (hadSave) document.getElementById('resumeNote').textContent = `נטען משחק שמור — 💰 ${Math.round(G.money)}`;
+scheduleFlat('frontTire');
+scheduleFlat('rearTire');
+
+/* =========================================================
+   INPUT HANDLING (keyboard + touch + gamepad, unified)
+========================================================= */
+const keys = {};
+window.addEventListener('keydown', e=>{ keys[e.code]=true; handleTrickKeyEdge(e.code,true); });
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+const input = { steer:0, boost:false, brake:false, pump:false };
+const trickEdge = { up:false, down:false, left:false, right:false };
+function handleTrickKeyEdge(code, down){
+  if (!down) return;
+  if (code==='KeyI'||code==='Numpad8') trickEdge.up = true;
+  if (code==='KeyK'||code==='Numpad2') trickEdge.down = true;
+  if (code==='KeyJ'||code==='Numpad4') trickEdge.left = true;
+  if (code==='KeyL'||code==='Numpad6') trickEdge.right = true;
+  if (code==='KeyB'||code==='Tab') toggleShop();
+  if (code==='KeyN') { if (pendingJobOffer) acceptJob(); }
+  if (code==='Escape') togglePause();
+}
+
+function readKeyboard(){
+  let steer=0;
+  if (keys['ArrowLeft']||keys['KeyA']) steer -= 1;
+  if (keys['ArrowRight']||keys['KeyD']) steer += 1;
+  input.steer = steer;
+  input.boost = !!(keys['ArrowUp']||keys['KeyW']||keys['ShiftLeft']);
+  input.brake = !!(keys['ArrowDown']||keys['KeyS']||keys['ControlLeft']);
+  input.pump = !!keys['KeyP'];
+}
+
+// ---- touch joystick ----
+let joyActive=false, joyDX=0;
+const joyBase = document.getElementById('joyBase');
+const joyStick = document.getElementById('joyStick');
+let joyTouchId = null;
+joyBase.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  joyTouchId = t.identifier; joyActive = true;
+}, {passive:false});
+window.addEventListener('touchmove', e=>{
+  if (!joyActive) return;
+  for (const t of e.changedTouches){
+    if (t.identifier===joyTouchId){
+      const rect = joyBase.getBoundingClientRect();
+      const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+      let dx = t.clientX-cx, dy = t.clientY-cy;
+      const max = 40;
+      const dist = Math.hypot(dx,dy);
+      if (dist>max){ dx = dx/dist*max; dy = dy/dist*max; }
+      joyDX = dx/max;
+      joyStick.style.transform = `translate(${dx-26}px, ${dy-26}px)`;
+    }
+  }
+}, {passive:false});
+window.addEventListener('touchend', e=>{
+  for (const t of e.changedTouches){
+    if (t.identifier===joyTouchId){ joyActive=false; joyDX=0; joyTouchId=null; joyStick.style.transform='translate(-50%,-50%)'; }
+  }
+});
+
+function bindHold(id, onDown, onUp){
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e=>{ e.preventDefault(); onDown(); }, {passive:false});
+  el.addEventListener('touchend', e=>{ e.preventDefault(); onUp(); }, {passive:false});
+  el.addEventListener('mousedown', e=>{ onDown(); });
+  window.addEventListener('mouseup', ()=>{ onUp(); });
+}
+let touchBoost=false, touchBrake=false, touchPump=false;
+bindHold('btnBoost', ()=>touchBoost=true, ()=>touchBoost=false);
+bindHold('btnBrake', ()=>touchBrake=true, ()=>touchBrake=false);
+bindHold('btnPumpTouch', ()=>touchPump=true, ()=>touchPump=false);
+function bindTap(id, cb){
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e=>{ e.preventDefault(); cb(); }, {passive:false});
+  el.addEventListener('click', cb);
+}
+bindTap('trickUpBtn', ()=>trickEdge.up=true);
+bindTap('trickDownBtn', ()=>trickEdge.down=true);
+bindTap('trickLeftBtn', ()=>trickEdge.left=true);
+bindTap('trickRightBtn', ()=>trickEdge.right=true);
+bindTap('shopIconBtn', ()=>toggleShop());
+bindTap('jobIconBtn', ()=>{ if (pendingJobOffer) acceptJob(); });
+bindTap('pauseIconBtn', ()=>togglePause());
+
+// ---- gamepad ----
+let gamepadIndex = null;
+window.addEventListener('gamepadconnected', e=>{ gamepadIndex = e.gamepad.index; document.getElementById('gpStatus').classList.add('show'); });
+window.addEventListener('gamepaddisconnected', ()=>{ gamepadIndex = null; document.getElementById('gpStatus').classList.remove('show'); });
+const gpPrev = {0:false,1:false,2:false,3:false,8:false,9:false,4:false};
+function readGamepad(){
+  if (gamepadIndex===null) return null;
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  const gp = pads[gamepadIndex];
+  if (!gp) return null;
+  const steer = Math.abs(gp.axes[0])>0.14 ? gp.axes[0] : 0;
+  const boost = (gp.buttons[7] && gp.buttons[7].value>0.2) || (gp.buttons[5]&&gp.buttons[5].pressed);
+  const brake = (gp.buttons[6] && gp.buttons[6].value>0.2);
+  const pumpHeld = gp.buttons[4] && gp.buttons[4].pressed;
+  // edge-detect face buttons for tricks + menu
+  const b0 = gp.buttons[0]&&gp.buttons[0].pressed; // A/Cross -> tailwhip(down)
+  const b1 = gp.buttons[1]&&gp.buttons[1].pressed; // B/Circle -> backflip(right)
+  const b2 = gp.buttons[2]&&gp.buttons[2].pressed; // X/Square -> barspin(left)
+  const b3 = gp.buttons[3]&&gp.buttons[3].pressed; // Y/Triangle -> superman(up)
+  const b8 = gp.buttons[8]&&gp.buttons[8].pressed;
+  const b9 = gp.buttons[9]&&gp.buttons[9].pressed;
+  if (b3 && !gpPrev[3]) trickEdge.up = true;
+  if (b0 && !gpPrev[0]) trickEdge.down = true;
+  if (b2 && !gpPrev[2]) trickEdge.left = true;
+  if (b1 && !gpPrev[1]) trickEdge.right = true;
+  if (b9 && !gpPrev[9]) toggleShop();
+  if (b8 && !gpPrev[8]) { if (pendingJobOffer) acceptJob(); }
+  gpPrev[0]=b0; gpPrev[1]=b1; gpPrev[2]=b2; gpPrev[3]=b3; gpPrev[8]=b8; gpPrev[9]=b9;
+  return { steer, boost, brake, pump: pumpHeld };
+}
+
+/* =========================================================
+   PART PERFORMANCE MODEL
+========================================================= */
+function getPerf(){
+  let maxSpeedMul=1, accelMul=1, brakeMul=1, jumpMul=1, crashChanceMul=1;
+  if (parts.frontTire.flat || parts.rearTire.flat){ maxSpeedMul*=0.45; accelMul*=0.55; }
+  const chainW = parts.chain.wear;
+  if (chainW>=100) { accelMul*=0.15; maxSpeedMul*=0.5; }
+  else if (chainW>=70) { accelMul*=0.6; maxSpeedMul*=0.85; }
+  accelMul *= (1+parts.chain.tier*0.15);
+  const brakeW = parts.brakes.wear;
+  if (brakeW>=100) brakeMul*=0.12;
+  else if (brakeW>=70) brakeMul*=0.5;
+  brakeMul *= (1+parts.brakes.tier*0.2);
+  const susW = parts.suspension.wear;
+  if (susW>=100){ crashChanceMul=3.0; jumpMul*=0.75; }
+  else if (susW>=70){ crashChanceMul=1.6; jumpMul*=0.9; }
+  jumpMul *= (1+parts.suspension.tier*0.1);
+  maxSpeedMul *= (1+parts.frontTire.tier*0.05+parts.rearTire.tier*0.05);
+  return {maxSpeedMul,accelMul,brakeMul,jumpMul,crashChanceMul};
+}
+
+/* =========================================================
+   TRICK DEFS
+========================================================= */
+const TRICKS = {
+  superman: {dur:0.7, cash:30, label:'SUPERMAN'},
+  tailwhip: {dur:0.6, cash:14, label:'TAILWHIP'},
+  barspin:  {dur:0.5, cash:8,  label:'BARSPIN'},
+  backflip: {dur:0.9, cash:22, label:'BACKFLIP'},
+};
+function tryStartTrick(type){
+  if (!bike.airborne) return;
+  if (bike.trick) return;
+  bike.trick = { type, t:0, dur: TRICKS[type].dur };
+}
+function applyTrickVisual(){
+  arms.forEach(a=>{ a.position.set(a===arms[0]?-0.3:0.3,-0.16,-0.4); a.rotation.set(0.9,0,a===arms[0]?-0.15:0.15); });
+  rig.position.set(0,0,0);
+  rig.rotation.set(0,0,0);
+  camera.userData.trickPitch = 0;
+  if (!bike.trick) return;
+  const t = bike.trick.t, dur = bike.trick.dur, type = bike.trick.type;
+  const p = Math.min(t/dur,1);
+  if (type==='superman'){
+    const s = Math.sin(p*Math.PI);
+    rig.position.z = -s*0.55; rig.position.y = -s*0.35;
+    camera.userData.trickPitch = -s*0.18;
+  } else if (type==='tailwhip'){
+    rig.rotation.y = p*Math.PI*2;
+  } else if (type==='barspin'){
+    bar.rotation.y = p*Math.PI*2;
+    stem.rotation.y = p*Math.PI*2;
+  } else if (type==='backflip'){
+    camera.userData.trickPitch = p*Math.PI*2;
+  }
+}
+
+/* =========================================================
+   CRASH / LAUNCH
+========================================================= */
+function launchBike(b){
+  const perf = getPerf();
+  b.vy = (5.2 + b.speed*0.34) * perf.jumpMul;
+  b.y = 0.02;
+  b.airborne = true;
+  b.airTime = 0;
+}
+function crashBike(b, cause){
+  if (b.crashedTimer>0) return;
+  b.speed *= 0.35;
+  b.crashedTimer = 0.75;
+  b.airborne = false; b.y=0; b.vy=0; b.trick=null; b.comboCount=0;
+  AudioSys.crash();
+  flashVignette();
+  addTrickPop('התרסקת!', 'crash');
+  const wearBump = (amt)=> amt*(0.7+Math.random()*0.8);
+  parts.chain.wear = Math.min(100, parts.chain.wear + wearBump(5));
+  parts.brakes.wear = Math.min(100, parts.brakes.wear + wearBump(4));
+  parts.suspension.wear = Math.min(100, parts.suspension.wear + wearBump(7));
+  if (Math.random()<0.13){
+    const key = Math.random()<0.5?'frontTire':'rearTire';
+    if (!parts[key].flat && !parts[key].burst) triggerFlat(key);
+  }
+}
+function flashVignette(){
+  const v = document.getElementById('vignette');
+  v.classList.add('hit');
+  setTimeout(()=>v.classList.remove('hit'), 260);
+}
+
+/* =========================================================
+   TIRE FLAT / PUMP
+========================================================= */
+function triggerFlat(key){
+  parts[key].flat = true;
+  parts[key].flatRideAccum = 0;
+  AudioSys.flat();
+  addTrickPop(key==='frontTire' ? 'פנצ\'ר בגלגל הקדמי!' : 'פנצ\'ר בגלגל האחורי!', 'crash');
+}
+let pumpProgress = 0;
+let pumpingKey = null;
+function currentFlatKey(){
+  if (parts.frontTire.flat && !parts.frontTire.burst) return 'frontTire';
+  if (parts.rearTire.flat && !parts.rearTire.burst) return 'rearTire';
+  return null;
+}
+function updatePump(dt, pumpHeld){
+  const key = currentFlatKey();
+  const wrap = document.getElementById('pumpGaugeWrap');
+  const prompt = document.getElementById('pumpPrompt');
+  const pumpTouchBtn = document.getElementById('btnPumpTouch');
+  if (!key){
+    prompt.classList.remove('show'); wrap.classList.remove('show'); pumpTouchBtn.classList.remove('show');
+    pumpProgress = 0; pumpingKey=null;
+    return;
+  }
+  pumpTouchBtn.classList.add('show');
+  const canPump = bike.speed < PUMP_SPEED_THRESHOLD && !bike.airborne;
+  if (pumpHeld && canPump){
+    prompt.classList.remove('show');
+    wrap.classList.add('show');
+    pumpingKey = key;
+    pumpProgress += dt * (100/3.0);
+    if (Math.floor(pumpProgress/12) !== Math.floor((pumpProgress-dt*(100/3.0))/12)) AudioSys.pumpTick();
+    document.getElementById('pumpGaugeInner').style.width = Math.min(100,pumpProgress)+'%';
+    if (pumpProgress>=100){
+      parts[key].flat = false;
+      parts[key].wear = Math.min(100, parts[key].wear+6);
+      scheduleFlat(key);
+      pumpProgress = 0;
+      AudioSys.pumpDone();
+      addTrickPop('הצמיג תוקן! ✅', 'cash');
+      wrap.classList.remove('show');
+    }
+  } else {
+    // remind the player to stop & pump whenever the tire is still flat and they
+    // are not actively filling it right now (moving too fast, airborne, or just not holding the button)
+    prompt.classList.add('show');
+    pumpProgress = Math.max(0, pumpProgress - (canPump ? dt*15 : dt*20));
+    wrap.classList.toggle('show', pumpProgress>0);
+    document.getElementById('pumpGaugeInner').style.width = Math.min(100,pumpProgress)+'%';
+  }
+}
+
+/* =========================================================
+   TRICK FEED / TOAST
+========================================================= */
+function addTrickPop(text, cls){
+  const feed = document.getElementById('trickFeed');
+  const el = document.createElement('div');
+  el.className = 'trickPop' + (cls?(' '+cls):'');
+  el.textContent = text;
+  feed.appendChild(el);
+  setTimeout(()=>el.remove(), 1450);
+}
+let toastTimer=null;
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+}
+
+/* =========================================================
+   JOB SYSTEM
+========================================================= */
+function offerJob(){
+  if (job || pendingJobOffer) return;
+  const dist = Math.round(280 + Math.random()*560);
+  const basePay = Math.round(38 + dist*0.16);
+  const timeLimit = Math.round(dist/13.5*1.25);
+  pendingJobOffer = {dist, basePay, timeLimit};
+  document.getElementById('offerDist').textContent = dist+' מ\'';
+  document.getElementById('offerPay').textContent = '$'+basePay+'+';
+  document.getElementById('offerTime').textContent = timeLimit+' שנ\'';
+  document.getElementById('jobOffer').classList.add('show');
+}
+function acceptJob(){
+  if (!pendingJobOffer) return;
+  job = {
+    targetDistance: G.distance + pendingJobOffer.dist,
+    timeLimit: pendingJobOffer.timeLimit,
+    startTime: G.rideTime,
+    basePay: pendingJobOffer.basePay,
+  };
+  pendingJobOffer = null;
+  document.getElementById('jobOffer').classList.remove('show');
+  document.getElementById('jobPanel').classList.add('show');
+}
+function declineJob(){
+  pendingJobOffer = null;
+  document.getElementById('jobOffer').classList.remove('show');
+  jobOfferTimer = setTimeout(offerJob, 12000);
+}
+document.getElementById('jobAccept').addEventListener('click', acceptJob);
+document.getElementById('jobDecline').addEventListener('click', declineJob);
+function completeJob(){
+  const timeUsed = G.rideTime - job.startTime;
+  const frac = Math.max(0, 1 - (timeUsed/job.timeLimit));
+  const bonus = Math.round(job.basePay*0.45*frac);
+  const pay = job.basePay + bonus;
+  G.money += pay;
+  AudioSys.jobDone();
+  showToast(`משלוח הושלם! +$${pay} 📦`);
+  job = null;
+  document.getElementById('jobPanel').classList.remove('show');
+  jobOfferTimer = setTimeout(offerJob, 5000);
+  saveGame();
+}
+function failJob(){
+  AudioSys.jobFail();
+  showToast('פספסת את הזמן למשלוח...');
+  job = null;
+  document.getElementById('jobPanel').classList.remove('show');
+  jobOfferTimer = setTimeout(offerJob, 6000);
+}
+function updateJob(dt){
+  if (!job) return;
+  const remaining = job.timeLimit - (G.rideTime - job.startTime);
+  document.getElementById('jobDistLeft').textContent = Math.max(0,Math.round(job.targetDistance-G.distance))+' מ\'';
+  document.getElementById('jobTimeBarInner').style.width = Math.max(0,Math.min(100,(remaining/job.timeLimit)*100))+'%';
+  if (remaining<=0){ failJob(); return; }
+  if (G.distance>=job.targetDistance){ completeJob(); }
+}
+
+/* =========================================================
+   SHOP UI
+========================================================= */
+const UPGRADE_DEFS = {
+  frontTire: [ {cost:120,label:'צמיגי תחרות'}, {cost:260,label:'צמיגי Kevlar'} ],
+  rearTire:  [ {cost:120,label:'צמיגי תחרות'}, {cost:260,label:'צמיגי Kevlar'} ],
+  chain:     [ {cost:100,label:'שרשרת מחוזקת'}, {cost:220,label:'שרשרת טיטניום'} ],
+  brakes:    [ {cost:150,label:'בלמי דיסק'}, {cost:300,label:'בלמים היפראולים'} ],
+  suspension:[ {cost:180,label:'בולם שמן'}, {cost:340,label:'בולם אוויר מקצועי'} ],
+};
+const PART_LABELS = { frontTire:'צמיג קדמי', rearTire:'צמיג אחורי', chain:'שרשרת', brakes:'בלמים', suspension:'בולם זעזועים' };
+
+function repairCost(key){
+  const p = parts[key];
+  if (key==='frontTire' || key==='rearTire'){
+    if (p.burst) return 40 + p.tier*8;
+    return 0;
+  }
+  const perPct = key==='chain'?0.55:(key==='brakes'?0.7:0.85);
+  return Math.max(4, Math.round(p.wear*perPct));
+}
+function renderShop(){
+  document.getElementById('panelMoney').textContent = '💰 '+Math.round(G.money);
+  const repairList = document.getElementById('repairList');
+  repairList.innerHTML = '';
+  for (const key of Object.keys(parts)){
+    const p = parts[key];
+    const isTire = key==='frontTire'||key==='rearTire';
+    const row = document.createElement('div');
+    row.className = 'partRow';
+    let statusText, barColor, barPct;
+    if (isTire){
+      statusText = p.burst ? 'הצמיג התפוצץ — יש להחליף' : (p.flat ? 'הצמיג מפוצץ — נפחו בשטח' : 'תקין');
+      barColor = p.burst ? 'var(--red)' : (p.flat ? 'var(--gold)' : 'var(--green)');
+      barPct = p.burst ? 100 : (p.flat?60:15);
+    } else {
+      statusText = p.wear>=100?'שבור לגמרי':(p.wear>=70?'שחוק מאוד':(p.wear>=35?'שחיקה בינונית':'תקין'));
+      barColor = p.wear>=100?'var(--red)':(p.wear>=70?'var(--gold)':'var(--green)');
+      barPct = Math.round(p.wear);
+    }
+    const cost = repairCost(key);
+    const canRepair = isTire ? p.burst : p.wear>0;
+    row.innerHTML = `
+      <div class="top"><span>${PART_LABELS[key]} ${p.tier>0?'⭐'.repeat(p.tier):''}</span><span>${cost>0?('$'+cost):'—'}</span></div>
+      <div class="status">${statusText}</div>
+      <div class="bar"><i style="width:${barPct}%;background:${barColor};"></i></div>
+      <div class="actions">
+        <button class="btnRepair" data-key="${key}" ${(!canRepair||G.money<cost)?'disabled':''}>${isTire?'החלף צמיג':'תקן'}</button>
+      </div>`;
+    repairList.appendChild(row);
+  }
+  repairList.querySelectorAll('.btnRepair').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.key;
+      const cost = repairCost(key);
+      if (G.money<cost) return;
+      G.money -= cost;
+      if (key==='frontTire'||key==='rearTire'){
+        parts[key].burst = false; parts[key].flat = false; parts[key].wear = 0; parts[key].flatRideAccum = 0;
+        scheduleFlat(key);
+      } else {
+        parts[key].wear = 0;
+      }
+      AudioSys.cash();
+      saveGame();
+      renderShop();
+    });
+  });
+
+  const upgradeList = document.getElementById('upgradeList');
+  upgradeList.innerHTML = '';
+  for (const key of Object.keys(UPGRADE_DEFS)){
+    const p = parts[key];
+    const nextTier = UPGRADE_DEFS[key][p.tier];
+    const row = document.createElement('div');
+    row.className = 'partRow';
+    if (!nextTier){
+      row.innerHTML = `<div class="top"><span>${PART_LABELS[key]}</span><span>מקסימום ⭐⭐</span></div>
+        <div class="status">כל השדרוגים נרכשו</div>`;
+    } else {
+      row.innerHTML = `
+        <div class="top"><span>${PART_LABELS[key]} → ${nextTier.label}</span><span>$${nextTier.cost}</span></div>
+        <div class="status">רמה נוכחית: ${p.tier} / ${UPGRADE_DEFS[key].length}</div>
+        <div class="actions"><button class="btnUpgrade" data-key="${key}" ${G.money<nextTier.cost?'disabled':''}>שדרג</button></div>`;
+    }
+    upgradeList.appendChild(row);
+  }
+  upgradeList.querySelectorAll('.btnUpgrade').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.key;
+      const nextTier = UPGRADE_DEFS[key][parts[key].tier];
+      if (!nextTier || G.money<nextTier.cost) return;
+      G.money -= nextTier.cost;
+      parts[key].tier += 1;
+      if (key==='frontTire'||key==='rearTire') scheduleFlat(key);
+      AudioSys.cash();
+      saveGame();
+      renderShop();
+    });
+  });
+}
+document.getElementById('tabRepair').addEventListener('click', ()=>{
+  document.getElementById('tabRepair').classList.add('active');
+  document.getElementById('tabUpgrade').classList.remove('active');
+  document.getElementById('repairList').style.display='block';
+  document.getElementById('upgradeList').style.display='none';
+});
+document.getElementById('tabUpgrade').addEventListener('click', ()=>{
+  document.getElementById('tabUpgrade').classList.add('active');
+  document.getElementById('tabRepair').classList.remove('active');
+  document.getElementById('upgradeList').style.display='block';
+  document.getElementById('repairList').style.display='none';
+});
+function toggleShop(){
+  if (!G.started) return;
+  G.shopOpen = !G.shopOpen;
+  document.getElementById('overlay').classList.toggle('show', G.shopOpen);
+  if (G.shopOpen) renderShop();
+}
+document.getElementById('closeOverlay').addEventListener('click', toggleShop);
+function togglePause(){
+  if (!G.started) return;
+  if (G.shopOpen) { toggleShop(); return; }
+  G.paused = !G.paused;
+}
+
+/* =========================================================
+   HUD UPDATE
+========================================================= */
+function updatePartsHUD(){
+  const row = document.getElementById('partsRow');
+  row.innerHTML = '';
+  const defs = [
+    {key:'frontTire', label:'צמיג קדמי', isTire:true},
+    {key:'rearTire', label:'צמיג אחורי', isTire:true},
+    {key:'chain', label:'שרשרת'},
+    {key:'brakes', label:'בלמים'},
+    {key:'suspension', label:'בולם'},
+  ];
+  for (const d of defs){
+    const p = parts[d.key];
+    const chip = document.createElement('div');
+    let cls = 'partChip';
+    let inner;
+    if (d.isTire){
+      if (p.burst){ cls+=' bad'; inner = `${d.label}: פיצוץ 💥`; }
+      else if (p.flat){ cls+=' flat'; inner = `${d.label}: פנצ'ר! 🔧`; }
+      else { inner = `${d.label}: תקין`; }
+    } else {
+      if (p.wear>=100) cls+=' bad'; else if (p.wear>=70) cls+=' warn';
+      const barColor = p.wear>=100?'var(--red)':(p.wear>=70?'var(--gold)':'var(--green)');
+      inner = `${d.label}<div class="bar"><i style="width:${p.wear}%;background:${barColor};"></i></div>`;
+    }
+    chip.className = cls;
+    chip.innerHTML = `<span class="dot"></span><span>${inner}</span>`;
+    row.appendChild(chip);
+  }
+}
+
+/* =========================================================
+   MAIN UPDATE LOOP
+========================================================= */
+let lastT = performance.now();
+function updateGame(dt){
+  if (!G.started || G.paused || G.shopOpen) return;
+
+  readKeyboard();
+  const gp = readGamepad();
+  let steer = input.steer, boost = input.boost, brake = input.brake, pumpHeld = input.pump || touchPump;
+  if (isTouch){ steer = Math.abs(joyDX)>0.06 ? joyDX : steer; boost = boost || touchBoost; brake = brake || touchBrake; }
+  if (gp){
+    if (Math.abs(gp.steer)>0.05) steer = gp.steer;
+    boost = boost || gp.boost;
+    brake = brake || gp.brake;
+    pumpHeld = pumpHeld || gp.pump;
+  }
+
+  const perf = getPerf();
+  G.rideTime += dt;
+
+  // tire hidden-timer check (only while actively riding)
+  for (const key of ['frontTire','rearTire']){
+    if (!parts[key].flat && !parts[key].burst && G.rideTime>=parts[key].nextFlatAt){
+      triggerFlat(key);
+    }
+    if (parts[key].flat && !parts[key].burst){
+      if (bike.speed > PUMP_SPEED_THRESHOLD){
+        parts[key].flatRideAccum += dt;
+        if (parts[key].flatRideAccum > 65){
+          parts[key].burst = true;
+          addTrickPop('הצמיג התפוצץ לגמרי! חובה מוסך 💥','crash');
+        }
+      }
+    }
+  }
+  updatePump(dt, pumpHeld);
+
+  // crash stun countdown
+  if (bike.crashedTimer>0){ bike.crashedTimer -= dt; }
+
+  // steering
+  const airCtrl = bike.airborne ? 0.55 : 1;
+  bike.x += steer * STEER_SPEED * airCtrl * dt;
+  bike.x = Math.max(-ROAD_HALF_WIDTH+0.5, Math.min(ROAD_HALF_WIDTH-0.5, bike.x));
+  const targetLean = -steer*0.42;
+  bike.lean += (targetLean-bike.lean)*Math.min(1,dt*6);
+
+  // speed
+  const maxSpeed = MAX_SPEED_BASE * perf.maxSpeedMul;
+  const cruiseSpeed = CRUISE_SPEED * perf.maxSpeedMul;
+  let targetSpeed, lerpRate;
+  if (bike.crashedTimer>0){ targetSpeed = MIN_SPEED*0.5; lerpRate = 3; }
+  else if (brake){
+    // worn/broken brakes (low perf.brakeMul) raise the lowest speed you can brake down to,
+    // matching the "brakes barely work" repair-shop narrative
+    targetSpeed = Math.min(cruiseSpeed, 0.4 / Math.max(0.12, perf.brakeMul));
+    lerpRate = 5.5;
+  }
+  else if (boost){ targetSpeed = maxSpeed; lerpRate = 2.2; }
+  else { targetSpeed = cruiseSpeed; lerpRate = 1.4; }
+  bike.speed += (targetSpeed-bike.speed) * Math.min(1, dt*lerpRate);
+  bike.speed = Math.max(0, Math.min(maxSpeed, bike.speed));
+
+  // trick input edges
+  if (trickEdge.up){ tryStartTrick('superman'); trickEdge.up=false; }
+  if (trickEdge.down){ tryStartTrick('tailwhip'); trickEdge.down=false; }
+  if (trickEdge.left){ tryStartTrick('barspin'); trickEdge.left=false; }
+  if (trickEdge.right){ tryStartTrick('backflip'); trickEdge.right=false; }
+
+  if (bike.trick){
+    bike.trick.t += dt;
+    if (bike.trick.t >= bike.trick.dur){
+      const def = TRICKS[bike.trick.type];
+      bike.comboCount += 1;
+      const mult = 1 + 0.5*(bike.comboCount-1);
+      const cash = Math.round(def.cash*mult);
+      G.money += cash;
+      AudioSys.trick();
+      addTrickPop(`${def.label} x${bike.comboCount}`, '');
+      addTrickPop(`+$${cash}`, 'cash');
+      bike.trick = null;
+    }
+  }
+  applyTrickVisual();
+
+  // vertical / airborne
+  if (bike.airborne){
+    bike.airTime += dt;
+    bike.y += bike.vy*dt;
+    bike.vy += GRAVITY*dt;
+    if (bike.y<=0){
+      bike.y = 0; bike.vy = 0;
+      if (bike.trick){
+        crashBike(bike, 'sloppy-landing');
+      } else {
+        bike.airborne = false;
+        if (bike.comboCount>0){ bike.comboCount = 0; }
+        if (Math.random() < 0.02*perf.crashChanceMul*Math.max(0,(bike.airTime-1.6))){
+          crashBike(bike,'hard-landing');
+        }
+      }
+    }
+  }
+
+  // forward progress
+  bike.z -= bike.speed*dt;
+  G.distance += bike.speed*dt;
+
+  // spawn / update obstacles
+  if (G.distance >= nextSpawnDistance){
+    spawnWave(nextSpawnDistance);
+    nextSpawnDistance += Math.max(16, 34 - G.distance*0.002) + Math.random()*10;
+  }
+  updateObstacles(bike, dt);
+
+  // camera placement
+  const bob = Math.sin(G.distance*0.9) * 0.035 * Math.min(1,bike.speed/CRUISE_SPEED);
+  const eyeH = 1.32 + bike.y + bob;
+  camera.position.set(bike.x, eyeH, bike.z);
+  const wobble = (parts.frontTire.flat||parts.rearTire.flat) ? Math.sin(performance.now()*0.02)*0.05 : 0;
+  camera.rotation.set(-0.04 - (camera.userData.trickPitch||0), 0, bike.lean + wobble);
+
+  recenterLongPlanes(bike.z);
+  updateJob(dt);
+  updatePartsHUD();
+
+  document.getElementById('speedVal').textContent = Math.round(bike.speed*3.6);
+  document.getElementById('moneyVal').textContent = Math.round(G.money);
+  document.getElementById('distVal').textContent = Math.round(G.distance);
+}
+
+let saveTick = 0;
+function animate(now){
+  requestAnimationFrame(animate);
+  let dt = (now-lastT)/1000;
+  lastT = now;
+  dt = Math.min(dt, 0.05);
+  updateGame(dt);
+  saveTick += dt;
+  if (saveTick>5){ saveTick=0; saveGame(); }
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+/* =========================================================
+   START / RESUME
+========================================================= */
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  AudioSys.ensure();
+  document.getElementById('startScreen').style.display = 'none';
+  G.started = true;
+  lastT = performance.now();
+  setTimeout(offerJob, 3500);
+});
+
+window.addEventListener('beforeunload', saveGame);
+</script>
+</body>
+</html>
