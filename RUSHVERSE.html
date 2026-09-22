@@ -1,0 +1,4614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RUSHVERSE</title>
+<meta name="description" content="RUSHVERSE — fast-paced third-person arena action for mobile.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#060810">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%237c4dff'/%3E%3Cpath d='M30 70 L55 30 L48 30 L70 30 L45 70 Z' fill='%2300e5ff'/%3E%3C/svg%3E">
+<style>
+/* RUSHVERSE - css/style.css */
+:root {
+  --bg: #060810;
+  --panel: rgba(18, 22, 36, 0.86);
+  --panel-light: rgba(30, 36, 56, 0.9);
+  --accent: #7c4dff;
+  --accent2: #ff3bd6;
+  --cyan: #00e5ff;
+  --gold: #ffce45;
+  --green: #7dff5a;
+  --red: #ff3860;
+  --text: #eef2ff;
+  --text-dim: #8fa0c0;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden; background: var(--bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  color: var(--text); user-select: none; touch-action: none; overscroll-behavior: none;
+}
+button { font-family: inherit; border: none; background: none; color: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+#app { position: fixed; inset: 0; display: flex; flex-direction: column; background:
+  radial-gradient(circle at 20% -10%, #241a4a 0%, transparent 55%),
+  radial-gradient(circle at 90% 110%, #4a1440 0%, transparent 50%), var(--bg); }
+
+/* ---------- Top header (currency / level) ---------- */
+#topHeader {
+  display: flex; align-items: center; gap: 8px; padding: calc(10px + var(--safe-top)) 14px 10px;
+  flex-shrink: 0; z-index: 30; transition: opacity 0.2s, transform 0.2s;
+}
+#topHeader.hidden { opacity: 0; pointer-events: none; transform: translateY(-10px); }
+.curr-pill {
+  display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 13px; backdrop-filter: blur(8px);
+}
+.coin-pill .curr-icon { color: var(--gold); }
+.gem-pill .curr-icon { color: var(--cyan); }
+.level-block { flex: 1; display: flex; align-items: center; gap: 8px; }
+.level-badge {
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); padding: 5px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.5px; flex-shrink: 0;
+}
+.xp-bar { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+.xp-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--accent)); transition: width 0.4s ease; }
+
+/* ---------- Stage / screens ---------- */
+#stage { position: relative; flex: 1; overflow: hidden; }
+.screen {
+  position: absolute; inset: 0; opacity: 0; pointer-events: none; transform: translateY(14px);
+  transition: opacity 0.28s ease, transform 0.28s ease; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(20px + var(--safe-bottom));
+}
+.screen.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.game-screen.active { overflow: hidden; }
+
+/* ---------- Bottom nav ---------- */
+#bottomNav {
+  display: flex; flex-shrink: 0; background: var(--panel); border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 6px 4px calc(6px + var(--safe-bottom)); backdrop-filter: blur(10px); z-index: 30; transition: opacity 0.2s, transform 0.2s;
+}
+#bottomNav.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 12px; color: var(--text-dim); transition: color 0.15s, transform 0.1s; }
+.nav-btn.active { color: var(--cyan); }
+.nav-btn:active { transform: scale(0.92); }
+.nav-icon { font-size: 18px; }
+.nav-label { font-size: 9px; font-weight: 700; letter-spacing: 0.4px; }
+.nav-home .nav-icon { font-size: 22px; color: var(--gold); }
+
+/* ---------- Home screen ---------- */
+.home-screen { display: flex; flex-direction: column; align-items: center; padding-top: 6vh; }
+.home-glow {
+  position: absolute; top: -20%; left: 50%; width: 140%; height: 60%; transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(124,77,255,0.35), transparent 65%); pointer-events: none;
+}
+.logo-wrap { text-align: center; margin-bottom: 4vh; animation: floatLogo 4s ease-in-out infinite; }
+@keyframes floatLogo { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.logo-title { font-size: 42px; font-weight: 900; letter-spacing: 2px; color: #fff; text-shadow: 0 0 24px rgba(124,77,255,0.7); }
+.logo-accent { background: linear-gradient(90deg, var(--cyan), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.logo-sub { font-size: 12px; letter-spacing: 6px; color: var(--text-dim); margin-top: 4px; }
+
+.picker-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; width: 100%; max-width: 380px; padding: 0 12px; }
+.picker-arrow { background: var(--panel); width: 38px; height: 38px; border-radius: 50%; font-size: 16px; flex-shrink: 0; }
+.picker-arrow:active { transform: scale(0.9); }
+.picker-card { flex: 1; background: var(--panel); border-radius: var(--radius); padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.06); }
+.char-avatar { width: 56px; height: 68px; border-radius: 50% 50% 45% 45%; margin: 0 auto 8px; box-shadow: 0 0 20px rgba(124,77,255,0.5); }
+.map-avatar { width: 100%; height: 46px; border-radius: 10px; margin-bottom: 8px; position: relative; overflow: hidden; }
+.map-avatar-glow { position: absolute; bottom: -10px; left: 20%; width: 60%; height: 30px; border-radius: 50%; filter: blur(14px); opacity: 0.6; }
+.picker-name { font-weight: 800; font-size: 15px; }
+.picker-sub { font-size: 10px; font-weight: 700; letter-spacing: 1px; margin: 2px 0; }
+.picker-desc { font-size: 11px; color: var(--text-dim); margin-top: 4px; min-height: 28px; }
+
+.play-btn {
+  margin-top: 12px; width: 200px; height: 64px; border-radius: 999px; font-size: 24px; font-weight: 900; letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--cyan), var(--accent) 55%, var(--accent2)); color: #fff;
+  box-shadow: 0 8px 30px rgba(124,77,255,0.55), inset 0 2px 0 rgba(255,255,255,0.3);
+  animation: pulsePlay 2.2s ease-in-out infinite;
+}
+@keyframes pulsePlay { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+.play-btn:active { transform: scale(0.94); }
+.best-score-line { margin-top: 14px; font-size: 12px; letter-spacing: 2px; color: var(--text-dim); font-weight: 700; }
+
+/* ---------- Generic screen chrome ---------- */
+.screen-title { font-size: 22px; font-weight: 900; letter-spacing: 2px; text-align: center; padding: 18px 0 10px; }
+.tab-row { display: flex; gap: 6px; padding: 0 12px 12px; overflow-x: auto; }
+.tab-btn { flex-shrink: 0; padding: 8px 16px; border-radius: 999px; background: var(--panel); font-weight: 700; font-size: 12px; letter-spacing: 0.5px; color: var(--text-dim); border: 1px solid rgba(255,255,255,0.06); }
+.tab-btn.active { background: linear-gradient(135deg, var(--accent), var(--cyan)); color: #fff; }
+
+/* ---------- Item grid / shop ---------- */
+.item-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 12px 20px; }
+.item-card { background: var(--panel); border-radius: var(--radius); padding: 12px; text-align: center; border: 2px solid rgba(255,255,255,0.06); }
+.rarity-border-common { border-color: #9aa5b1; }
+.rarity-border-uncommon { border-color: #5fd97a; }
+.rarity-border-rare { border-color: #4fa8ff; }
+.rarity-border-epic { border-color: #b968ff; }
+.rarity-border-legendary { border-color: #ffb23e; box-shadow: 0 0 14px rgba(255,178,62,0.3); }
+.rarity-border-mythic { border-color: #ff5ec8; box-shadow: 0 0 16px rgba(255,94,200,0.4); }
+.item-preview { width: 100%; height: 64px; border-radius: 10px; margin-bottom: 8px; }
+.item-name { font-weight: 800; font-size: 13px; }
+.item-rarity { font-size: 9px; font-weight: 800; letter-spacing: 1px; margin: 2px 0 6px; }
+.rarity-common { color: #9aa5b1; } .rarity-uncommon { color: #5fd97a; } .rarity-rare { color: #4fa8ff; }
+.rarity-epic { color: #b968ff; } .rarity-legendary { color: #ffb23e; } .rarity-mythic { color: #ff5ec8; }
+.item-desc { font-size: 10px; color: var(--text-dim); min-height: 14px; margin-bottom: 6px; }
+.item-btn { width: 100%; padding: 8px 4px; border-radius: 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; }
+.buy-btn { background: linear-gradient(135deg, var(--cyan), var(--accent)); color: #fff; }
+.buy-btn:active { transform: scale(0.95); }
+.owned-btn { background: rgba(125,255,90,0.18); color: var(--green); border: 1px solid rgba(125,255,90,0.4); }
+.locked-btn { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+.coin-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+
+/* ---------- Missions / achievements ---------- */
+.list-col { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 20px; }
+.mission-row { display: flex; gap: 10px; background: var(--panel); border-radius: var(--radius-sm); padding: 12px; align-items: center; }
+.mission-info { flex: 1; }
+.mission-name { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.mission-desc { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.progress-bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan)); transition: width 0.3s; }
+.progress-label { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+.mission-reward { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+.reward-chip { font-size: 11px; font-weight: 800; color: var(--gold); background: rgba(255,206,69,0.12); padding: 4px 8px; border-radius: 8px; white-space: nowrap; }
+.claim-btn, .claim-mission-btn { padding: 6px 12px; font-size: 10px; }
+.claimed-tag { font-size: 10px; color: var(--text-dim); font-weight: 700; }
+
+/* ---------- Collection: chests / stats ---------- */
+.chest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 12px 20px; }
+.chest-card { background: var(--panel); border-radius: var(--radius); padding: 16px; text-align: center; border: 2px solid rgba(255,255,255,0.06); }
+.chest-icon { font-size: 34px; margin-bottom: 6px; }
+.stats-grid { padding: 0 12px 20px; display: flex; flex-direction: column; gap: 8px; }
+.stat-row { display: flex; justify-content: space-between; background: var(--panel); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; }
+.stat-row-val { font-weight: 800; color: var(--cyan); }
+
+/* ---------- Leaderboard ---------- */
+.friend-code-box { margin: 0 12px 16px; background: var(--panel); border-radius: var(--radius); padding: 14px; text-align: center; }
+.friend-code-label { font-size: 10px; letter-spacing: 1px; color: var(--text-dim); }
+.friend-code-value { font-size: 20px; font-weight: 900; letter-spacing: 2px; color: var(--cyan); margin: 4px 0 10px; }
+.friend-add-row { display: flex; gap: 8px; }
+.friend-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; color: #fff; font-weight: 700; text-align: center; letter-spacing: 1px; }
+.small-btn { padding: 0 16px; font-size: 12px; }
+.podium-row { display: flex; justify-content: center; align-items: flex-end; gap: 10px; padding: 6px 16px 18px; }
+.podium-item { background: var(--panel); border-radius: var(--radius-sm); padding: 10px; text-align: center; width: 90px; }
+.podium-item.rank-1 { padding-bottom: 18px; border: 1px solid rgba(255,178,62,0.5); }
+.podium-item.rank-2 { border: 1px solid rgba(154,165,177,0.5); }
+.podium-item.rank-3 { border: 1px solid rgba(255,138,62,0.4); }
+.podium-avatar { width: 32px; height: 32px; border-radius: 50%; margin: 4px auto; background: linear-gradient(135deg, var(--cyan), var(--accent)); }
+.podium-rank { font-weight: 900; font-size: 13px; color: var(--gold); }
+.podium-name { font-size: 11px; font-weight: 700; }
+.podium-score { font-size: 12px; font-weight: 800; color: var(--cyan); }
+.lb-list { padding: 0 12px 20px; display: flex; flex-direction: column; gap: 6px; }
+.lb-row { display: flex; align-items: center; gap: 10px; background: var(--panel); padding: 10px 12px; border-radius: var(--radius-sm); }
+.lb-row.is-player { border: 1px solid var(--cyan); background: rgba(0,229,255,0.08); }
+.lb-rank { width: 36px; font-weight: 800; color: var(--text-dim); font-size: 12px; }
+.lb-name { flex: 1; font-weight: 700; font-size: 13px; }
+.lb-score { font-weight: 800; color: var(--gold); font-size: 13px; }
+.lb-divider { text-align: center; color: var(--text-dim); }
+.challenge-btn { background: rgba(255,59,214,0.15); color: var(--accent2); border: 1px solid rgba(255,59,214,0.4); border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 800; }
+.empty-state { text-align: center; color: var(--text-dim); padding: 30px; font-size: 13px; }
+.challenge-type-row { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.challenge-vs-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 14px 0; }
+.challenge-side { text-align: center; }
+.challenge-name { font-size: 12px; color: var(--text-dim); font-weight: 700; }
+.challenge-value { font-size: 20px; font-weight: 900; color: var(--cyan); }
+.challenge-vs { font-weight: 900; color: var(--text-dim); }
+
+/* ---------- Settings ---------- */
+.settings-list { padding: 0 14px 30px; display: flex; flex-direction: column; gap: 10px; }
+.settings-row { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; font-weight: 700; }
+.settings-row.col { flex-direction: column; align-items: stretch; gap: 8px; }
+.settings-section-title { font-size: 11px; letter-spacing: 2px; color: var(--text-dim); margin: 10px 0 -2px; padding-left: 4px; }
+.volume-slider { width: 55%; accent-color: var(--cyan); }
+.segment-group { display: flex; gap: 6px; }
+.segment-btn { flex: 1; padding: 8px 4px; border-radius: 8px; background: rgba(255,255,255,0.06); font-size: 11px; font-weight: 700; color: var(--text-dim); }
+.segment-btn.active { background: linear-gradient(135deg, var(--accent), var(--cyan)); color: #fff; }
+.toggle-switch { width: 44px; height: 24px; border-radius: 999px; background: rgba(255,255,255,0.12); position: relative; transition: background 0.2s; }
+.toggle-switch.on { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+.toggle-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle-switch.on .toggle-knob { left: 23px; }
+.danger-btn { background: linear-gradient(135deg, #ff3860, #ff6a45); color: #fff; margin-top: 6px; }
+
+/* ---------- Tutorial ---------- */
+.tutorial-screen { display: flex; align-items: center; justify-content: center; }
+.tutorial-card { text-align: center; padding: 30px; max-width: 320px; }
+.tutorial-progress { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 20px; }
+.tutorial-icon { font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 0 12px rgba(124,77,255,0.6)); }
+.tutorial-title { font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; }
+.tutorial-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.5; }
+.skip-link { display: block; margin-top: 14px; font-size: 12px; color: var(--text-dim); text-decoration: underline; }
+
+/* ---------- Generic menu buttons / modal ---------- */
+.menu-btn {
+  display: block; width: 100%; padding: 15px; border-radius: 14px; font-size: 15px; font-weight: 800; letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--cyan), var(--accent)); color: #fff; margin-bottom: 10px;
+}
+.menu-btn:active { transform: scale(0.97); }
+.menu-btn.secondary { background: rgba(255,255,255,0.08); }
+.btn-row { display: flex; gap: 10px; }
+.btn-row .menu-btn { flex: 1; }
+
+#modalLayer { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
+#modalLayer.active { pointer-events: auto; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(2,4,10,0.7); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.22s; backdrop-filter: blur(4px); }
+.modal-backdrop.show { opacity: 1; }
+.modal-card {
+  background: var(--panel-light); border-radius: 22px; padding: 26px 24px; width: min(340px, 88vw); text-align: center;
+  border: 1px solid rgba(255,255,255,0.1); transform: scale(0.85) translateY(10px); transition: transform 0.25s ease;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-backdrop.show .modal-card { transform: scale(1) translateY(0); }
+.levelup-title { font-size: 24px; font-weight: 900; letter-spacing: 2px; background: linear-gradient(90deg, var(--gold), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 6px; }
+.levelup-level { font-size: 34px; font-weight: 900; margin: 10px 0; }
+.levelup-unlock { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; min-height: 18px; }
+.levelup-burst { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 50%; background: radial-gradient(circle, rgba(255,206,69,0.6), transparent 70%); animation: burstPulse 1.2s ease-in-out infinite; }
+@keyframes burstPulse { 0%,100% { transform: scale(0.9); opacity: 0.7; } 50% { transform: scale(1.15); opacity: 1; } }
+.chest-open-icon { font-size: 60px; margin-bottom: 6px; animation: chestShake 0.5s ease-in-out; }
+@keyframes chestShake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+.chest-rewards { margin: 14px 0 20px; }
+.chest-reward-line { font-size: 15px; font-weight: 800; color: var(--gold); margin: 4px 0; }
+.daily-strip { display: flex; gap: 5px; margin: 14px 0; overflow-x: auto; }
+.daily-cell { flex-shrink: 0; width: 44px; padding: 6px 2px; border-radius: 10px; background: rgba(255,255,255,0.05); text-align: center; }
+.daily-cell.active { background: linear-gradient(135deg, var(--gold), var(--accent2)); }
+.daily-cell.done { opacity: 0.4; }
+.daily-day { font-size: 8px; font-weight: 700; }
+.daily-icon { font-size: 16px; margin-top: 2px; }
+.daily-claim-label { font-size: 14px; font-weight: 800; margin-bottom: 16px; color: var(--gold); }
+
+/* ---------- Toasts / confetti ---------- */
+#toastLayer { position: fixed; top: calc(70px + var(--safe-top)); left: 0; right: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.toast { background: var(--panel-light); border: 1px solid; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 700; opacity: 0; transform: translateY(-12px); transition: opacity 0.25s, transform 0.25s; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.confetti-piece { position: fixed; top: 20%; width: 8px; height: 14px; opacity: 0.9; animation: confettiFall 2s ease-in forwards; z-index: 95; }
+@keyframes confettiFall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(70vh) rotate(400deg); opacity: 0; } }
+
+/* ---------- Gameplay screen ---------- */
+.game-screen { padding: 0 !important; }
+#gameCanvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.hud-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 14; }
+.hud-top { display: flex; align-items: center; gap: 12px; padding: calc(12px + var(--safe-top)) 16px 0; }
+.hud-pause { width: 38px; height: 38px; background: rgba(10,14,24,0.55); border-radius: 50%; font-size: 13px; backdrop-filter: blur(6px); }
+.hud-hp { display: flex; gap: 4px; }
+.hp-pip { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); }
+.hp-pip.full { background: var(--red); box-shadow: 0 0 8px var(--red); border-color: transparent; }
+.hp-pip.empty { background: rgba(255,255,255,0.05); }
+.hud-score-wrap { margin-left: auto; text-align: right; }
+.hud-score { font-size: 26px; font-weight: 900; text-shadow: 0 0 10px rgba(0,229,255,0.5); }
+.hud-score-label { font-size: 9px; letter-spacing: 2px; color: var(--text-dim); }
+.hud-combo {
+  position: absolute; top: 70px; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: 900;
+  color: var(--gold); text-shadow: 0 0 12px rgba(255,206,69,0.7); opacity: 0; transition: opacity 0.15s;
+}
+.hud-banner {
+  position: absolute; top: 100px; left: 50%; transform: translateX(-50%) translateY(-10px); font-size: 20px; font-weight: 900;
+  letter-spacing: 3px; padding: 8px 22px; border-radius: 999px; background: rgba(10,14,24,0.7); color: #fff; opacity: 0;
+}
+.hud-banner.show { animation: bannerPop 2.2s ease forwards; }
+@keyframes bannerPop { 0% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); } 15% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.05); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-6px); } }
+.hud-status-icons { position: absolute; top: 60px; right: 16px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.status-icon { font-size: 10px; font-weight: 800; background: rgba(10,14,24,0.6); padding: 3px 8px; border-radius: 8px; letter-spacing: 1px; }
+
+/* ---------- Controls layer ----------
+   NOTE: .game-screen is only truly hidden via opacity/pointer-events:none on
+   itself, but that does NOT cascade onto descendants that set their own
+   pointer-events. The joystick/buttons/swipe-zone need pointer-events:auto
+   to work, so they must be re-scoped to fire only while .game-screen is
+   .active, or they'd sit invisibly on top of every other screen and eat
+   clicks (caught by smoke-testing: the Play button became unclickable). */
+.controls-layer { position: absolute; inset: 0; z-index: 12; }
+.joy-base, .swipe-zone, .action-btn, .hud-pause { pointer-events: none; }
+.game-screen.active .joy-base,
+.game-screen.active .swipe-zone,
+.game-screen.active .action-btn,
+.game-screen.active .hud-pause { pointer-events: auto; }
+.joy-base {
+  position: absolute; left: 26px; bottom: calc(30px + var(--safe-bottom)); width: 110px; height: 110px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15);
+}
+.joy-base.right-side { left: auto; right: 26px; }
+.joy-knob { position: absolute; top: 50%; left: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(0,229,255,0.35); border: 2px solid rgba(0,229,255,0.7); transition: transform 0.06s linear; }
+.swipe-zone { position: absolute; inset: 0; z-index: -1; }
+.action-cluster { position: absolute; right: 22px; bottom: calc(26px + var(--safe-bottom)); display: flex; align-items: flex-end; gap: 10px; }
+.action-cluster.left-side { right: auto; left: 22px; flex-direction: row-reverse; }
+.action-btn {
+  border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center; color: #fff; position: relative; overflow: hidden;
+}
+.action-btn.pressed { transform: scale(0.88); background: rgba(255,255,255,0.22); }
+.dash-btn { width: 70px; height: 70px; font-size: 26px; border-color: rgba(0,229,255,0.6); background: rgba(0,229,255,0.12); }
+.jump-btn { width: 56px; height: 56px; font-size: 20px; margin-bottom: 24px; border-color: rgba(125,255,90,0.6); background: rgba(125,255,90,0.1); }
+.ability-btn { width: 60px; height: 60px; font-size: 22px; margin-bottom: 6px; border-color: rgba(255,59,214,0.6); background: rgba(255,59,214,0.12); }
+.btn-cd { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: rgba(0,0,0,0.55); transition: height 0.1s linear; }
+.btn-icon { position: relative; z-index: 1; }
+
+/* ---------- Pause menu ---------- */
+.pause-menu { position: absolute; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(2,4,10,0.7); backdrop-filter: blur(4px); }
+.pause-menu.active { display: flex; }
+.pause-card { background: var(--panel-light); border-radius: 22px; padding: 26px; width: min(300px, 82vw); text-align: center; }
+.pause-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; margin-bottom: 18px; }
+
+/* ---------- Game over ---------- */
+.gameover-screen { display: flex; align-items: center; justify-content: center; }
+.gameover-card { text-align: center; padding: 24px; max-width: 360px; width: 90vw; }
+.gameover-title { font-size: 26px; font-weight: 900; letter-spacing: 3px; color: var(--text-dim); margin-bottom: 10px; }
+.new-record-badge {
+  display: inline-block; font-size: 16px; font-weight: 900; letter-spacing: 2px; padding: 8px 18px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold), var(--accent2)); margin-bottom: 10px; animation: recordPulse 1s ease-in-out infinite;
+}
+@keyframes recordPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.score-reveal { font-size: 56px; font-weight: 900; text-shadow: 0 0 24px rgba(0,229,255,0.6); }
+.best-line { font-size: 12px; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 20px; }
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+.stat-block { background: var(--panel); border-radius: 12px; padding: 12px; }
+.stat-value { font-size: 20px; font-weight: 900; }
+.stat-label { font-size: 9px; letter-spacing: 1px; color: var(--text-dim); margin-top: 2px; }
+
+/* ---------- Boot loader ---------- */
+#bootLoader {
+  position: fixed; inset: 0; z-index: 200; background: var(--bg); display: flex; flex-direction: column; align-items: center;
+  justify-content: center; transition: opacity 0.4s ease; gap: 14px;
+}
+#bootLoader.hidden { opacity: 0; pointer-events: none; }
+.boot-title { font-size: 32px; font-weight: 900; letter-spacing: 3px; }
+.boot-spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (min-width: 700px) {
+  .item-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+</style>
+</head>
+<body>
+  <div id="bootLoader">
+    <div class="boot-title">RUSH<span style="color:#00e5ff">VERSE</span></div>
+    <div class="boot-spinner"></div>
+  </div>
+
+  <div id="app">
+    <div id="topHeader"></div>
+    <div id="stage"></div>
+    <div id="bottomNav"></div>
+  </div>
+
+  <div id="toastLayer"></div>
+  <div id="modalLayer"></div>
+
+  <!-- Data layer -->
+      
+  <!-- Audio / Effects -->
+    
+  <!-- Core game engine -->
+                    
+  <!-- UI shell -->
+              
+  <!-- Feature screens -->
+              
+  <script>
+/* ==== js/Data/SaveSystem.js ==== */
+/* RUSHVERSE - Data/SaveSystem.js
+   Local persistence layer. Everything the game needs to remember lives here,
+   wrapped so the rest of the codebase never touches localStorage directly.
+   Designed so a future networked backend can slot in behind the same API
+   (see RV.Save.setRemoteAdapter). */
+(function (RV) {
+  'use strict';
+
+  var STORAGE_KEY = 'rushverse_save_v1';
+  var SAVE_VERSION = 1;
+
+  function uid(prefix) {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var s = '';
+    for (var i = 0; i < 5; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return prefix + '-' + s;
+  }
+
+  function defaultSave() {
+    return {
+      version: SAVE_VERSION,
+      playerName: 'Runner',
+      playerCode: uid('RV'),
+      createdAt: Date.now(),
+
+      coins: 250,
+      gems: 15,
+      level: 1,
+      xp: 0,
+
+      bestScore: 0,
+      lifetimeCoins: 0,
+      gamesPlayed: 0,
+      totalSurvivalMs: 0,
+      totalPlayMs: 0,
+      bestCombo: 0,
+      bestSurvivalMs: 0,
+      damagelessWins: 0,
+      abilityUses: 0,
+
+      characters: {
+        owned: ['rush'],
+        equipped: 'rush'
+      },
+      skins: {
+        owned: ['outfit_default', 'trail_default', 'effect_default', 'emote_default'],
+        equipped: {
+          outfit: 'outfit_default',
+          trail: 'trail_default',
+          effect: 'effect_default',
+          emote: 'emote_default'
+        }
+      },
+      maps: {
+        unlocked: ['neon_city']
+      },
+
+      achievements: {},
+      missions: {
+        daily: null,
+        weekly: null,
+        dailyResetAt: 0,
+        weeklyResetAt: 0
+      },
+
+      dailyReward: {
+        streak: 0,
+        lastClaim: 0
+      },
+
+      chests: { common: 0, rare: 0, epic: 0, legendary: 0 },
+      keys: { common: 0, rare: 0, epic: 0, legendary: 0 },
+
+      friends: [],
+
+      settings: {
+        musicVolume: 0.6,
+        sfxVolume: 0.8,
+        graphics: 'medium',
+        vibration: true,
+        language: 'en',
+        joystickSide: 'left'
+      },
+
+      tutorialDone: false,
+      lastRun: null
+    };
+  }
+
+  function deepMerge(base, incoming) {
+    if (typeof incoming !== 'object' || incoming === null) return base;
+    Object.keys(base).forEach(function (k) {
+      if (incoming[k] === undefined) return;
+      if (typeof base[k] === 'object' && base[k] !== null && !Array.isArray(base[k])) {
+        base[k] = deepMerge(base[k], incoming[k]);
+      } else {
+        base[k] = incoming[k];
+      }
+    });
+    return base;
+  }
+
+  var state = null;
+  var remoteAdapter = null;
+  var dirty = false;
+
+  function load() {
+    var fresh = defaultSave();
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        state = deepMerge(fresh, parsed);
+      } else {
+        state = fresh;
+      }
+    } catch (e) {
+      console.warn('[RUSHVERSE] save load failed, starting fresh', e);
+      state = fresh;
+    }
+    return state;
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      dirty = false;
+      if (remoteAdapter && remoteAdapter.push) remoteAdapter.push(state);
+    } catch (e) {
+      console.warn('[RUSHVERSE] save persist failed', e);
+    }
+  }
+
+  var persistTimer = null;
+  function scheduleSave() {
+    dirty = true;
+    if (persistTimer) return;
+    persistTimer = setTimeout(function () {
+      persistTimer = null;
+      if (dirty) persist();
+    }, 250);
+  }
+
+  window.addEventListener('beforeunload', function () {
+    if (dirty) persist();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && dirty) persist();
+  });
+
+  RV.Save = {
+    get: function () { return state || load(); },
+    save: scheduleSave,
+    saveNow: persist,
+    reset: function () {
+      state = defaultSave();
+      persist();
+      return state;
+    },
+    setRemoteAdapter: function (adapter) { remoteAdapter = adapter; },
+    uid: uid
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Data/GameData.js ==== */
+/* RUSHVERSE - Data/GameData.js
+   Static game-design data: characters, shop catalog, maps, missions pool,
+   achievements, daily rewards, chest tables. Pure data, no logic. */
+(function (RV) {
+  'use strict';
+
+  var RARITY = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+  var RARITY_COLOR = {
+    common: '#9aa5b1', uncommon: '#5fd97a', rare: '#4fa8ff',
+    epic: '#b968ff', legendary: '#ffb23e', mythic: '#ff5ec8'
+  };
+
+  var CHARACTERS = [
+    {
+      id: 'rush', name: 'RUSH', rarity: 'common',
+      desc: 'The balanced starter. Reliable in every arena.',
+      color: '#00e5ff', accent: '#7dfcff',
+      unlock: { type: 'default' },
+      ability: { id: 'surge', name: 'SURGE', desc: 'Brief burst of speed and reduced incoming damage.', cooldown: 9000, duration: 2200 }
+    },
+    {
+      id: 'dasher', name: 'DASHER', rarity: 'uncommon',
+      desc: 'Built for one thing: getting out of the way, instantly.',
+      color: '#ffce45', accent: '#fff3c0',
+      unlock: { type: 'level', value: 5 },
+      ability: { id: 'blink', name: 'BLINK DASH', desc: 'Instant long-range dash with brief invulnerability.', cooldown: 6000, duration: 300 }
+    },
+    {
+      id: 'shock', name: 'SHOCK', rarity: 'rare',
+      desc: 'Crackles with static. Clears crowds in a flash.',
+      color: '#7dff5a', accent: '#d6ffb0',
+      unlock: { type: 'coins', value: 3000 },
+      ability: { id: 'shockwave', name: 'SHOCKWAVE', desc: 'Electric pulse that stuns and damages nearby enemies.', cooldown: 11000, duration: 400 }
+    },
+    {
+      id: 'frost', name: 'FROST', rarity: 'epic',
+      desc: 'Turns the whole arena to ice, and slows it down.',
+      color: '#7ad9ff', accent: '#e8fbff',
+      unlock: { type: 'level', value: 10 },
+      ability: { id: 'frostfield', name: 'FROST FIELD', desc: 'Slows all nearby enemies and obstacles for a few seconds.', cooldown: 13000, duration: 4000 }
+    },
+    {
+      id: 'magnet', name: 'MAGNET', rarity: 'epic',
+      desc: 'Never leaves a coin behind.',
+      color: '#ff7ad1', accent: '#ffd6ef',
+      unlock: { type: 'coins', value: 6000 },
+      ability: { id: 'magnetpulse', name: 'MAGNET PULSE', desc: 'Pulls every coin on screen toward you.', cooldown: 12000, duration: 3000 }
+    },
+    {
+      id: 'phantom', name: 'PHANTOM', rarity: 'legendary',
+      desc: 'Half in this world, half out of it.',
+      color: '#c79bff', accent: '#efe0ff',
+      unlock: { type: 'level', value: 18 },
+      ability: { id: 'phase', name: 'PHASE', desc: 'Become briefly invincible and pass through obstacles.', cooldown: 15000, duration: 2500 }
+    }
+  ];
+
+  var MAPS = [
+    {
+      id: 'neon_city', name: 'NEON CITY',
+      desc: 'A futuristic skyline soaked in neon light.',
+      unlock: { type: 'default' },
+      palette: { sky1: '#0a0620', sky2: '#1b0f3d', floor1: '#160b33', floor2: '#2a1660', grid: '#7a3bff', glow: '#ff3bd6', ambient: '#5f2bff' },
+      musicKey: 'neon', obstaclePool: ['laser', 'movingWall', 'spinner'], hazardTint: '#ff3bd6'
+    },
+    {
+      id: 'desert_run', name: 'DESERT RUN',
+      desc: 'Endless dunes, rolling boulders and biting sandstorms.',
+      unlock: { type: 'level', value: 3 },
+      palette: { sky1: '#2b1405', sky2: '#7a3d12', floor1: '#3a1d08', floor2: '#8a5220', grid: '#ffb85c', glow: '#ffe08a', ambient: '#ff9a3c' },
+      musicKey: 'desert', obstaclePool: ['boulder', 'sandTrap', 'fallingRock'], hazardTint: '#ffb85c'
+    },
+    {
+      id: 'frozen_lab', name: 'FROZEN LAB',
+      desc: 'A cryo-research facility gone cold and hostile.',
+      unlock: { type: 'level', value: 7 },
+      palette: { sky1: '#04121c', sky2: '#0d3350', floor1: '#082438', floor2: '#144a68', grid: '#7fe7ff', glow: '#bdfbff', ambient: '#3fd6ff' },
+      musicKey: 'frozen', obstaclePool: ['electricZone', 'slideFloor', 'frostTrap'], hazardTint: '#7fe7ff'
+    },
+    {
+      id: 'sky_city', name: 'SKY CITY',
+      desc: 'A city suspended above the clouds.',
+      unlock: { type: 'level', value: 12 },
+      palette: { sky1: '#0c1f3d', sky2: '#3a68a8', floor1: '#16305a', floor2: '#5c8fd6', grid: '#ffffff', glow: '#ffe9a8', ambient: '#9fd0ff' },
+      musicKey: 'sky', obstaclePool: ['fallingRock', 'movingWall', 'door'], hazardTint: '#ffffff'
+    },
+    {
+      id: 'volcano_core', name: 'VOLCANO CORE',
+      desc: 'The molten heart of the world. Nowhere is safe to stand.',
+      unlock: { type: 'level', value: 16 },
+      palette: { sky1: '#1a0503', sky2: '#5c0f08', floor1: '#260a05', floor2: '#7a1c0a', grid: '#ff5a1f', glow: '#ffcf3e', ambient: '#ff3d0a' },
+      musicKey: 'volcano', obstaclePool: ['lava', 'fallingRock', 'door', 'spinner'], hazardTint: '#ff5a1f'
+    }
+  ];
+
+  // Shop catalog: characters are unlocked via CHARACTERS above (progression/coins), the
+  // shop sells cosmetics only, so nothing here is pay-to-win.
+  var SHOP_ITEMS = [
+    { id: 'outfit_default', cat: 'outfit', name: 'Recruit', rarity: 'common', price: { coins: 0 }, color: '#8fa5c0' },
+    { id: 'outfit_crimson', cat: 'outfit', name: 'Crimson Guard', rarity: 'uncommon', price: { coins: 800 }, color: '#ff4d5e' },
+    { id: 'outfit_azure', cat: 'outfit', name: 'Azure Strike', rarity: 'rare', price: { coins: 1600 }, color: '#3ea6ff' },
+    { id: 'outfit_gilded', cat: 'outfit', name: 'Gilded Vanguard', rarity: 'epic', price: { gems: 120 }, color: '#ffce45' },
+    { id: 'outfit_voidwalker', cat: 'outfit', name: 'Voidwalker', rarity: 'legendary', price: { gems: 260 }, color: '#8a3bff' },
+    { id: 'outfit_singularity', cat: 'outfit', name: 'Singularity', rarity: 'mythic', price: { gems: 480 }, color: '#ff5ec8' },
+
+    { id: 'trail_default', cat: 'trail', name: 'None', rarity: 'common', price: { coins: 0 }, color: '#7d8896' },
+    { id: 'trail_spark', cat: 'trail', name: 'Spark Trail', rarity: 'uncommon', price: { coins: 600 }, color: '#ffe27a' },
+    { id: 'trail_comet', cat: 'trail', name: 'Comet Tail', rarity: 'rare', price: { coins: 1400 }, color: '#7ad9ff' },
+    { id: 'trail_inferno', cat: 'trail', name: 'Inferno Trail', rarity: 'epic', price: { gems: 100 }, color: '#ff6a2e' },
+    { id: 'trail_aurora', cat: 'trail', name: 'Aurora Trail', rarity: 'legendary', price: { gems: 220 }, color: '#7dffb0' },
+    { id: 'trail_quantum', cat: 'trail', name: 'Quantum Ribbon', rarity: 'mythic', price: { gems: 420 }, color: '#c79bff' },
+
+    { id: 'effect_default', cat: 'effect', name: 'None', rarity: 'common', price: { coins: 0 }, color: '#7d8896' },
+    { id: 'effect_glowstep', cat: 'effect', name: 'Glow Step', rarity: 'uncommon', price: { coins: 700 }, color: '#5fd9ff' },
+    { id: 'effect_shatter', cat: 'effect', name: 'Shatter Burst', rarity: 'rare', price: { coins: 1500 }, color: '#dfe8ff' },
+    { id: 'effect_novaring', cat: 'effect', name: 'Nova Ring', rarity: 'epic', price: { gems: 110 }, color: '#ff9ad1' },
+    { id: 'effect_starfall', cat: 'effect', name: 'Starfall', rarity: 'legendary', price: { gems: 240 }, color: '#ffe27a' },
+
+    { id: 'emote_default', cat: 'emote', name: 'Wave', rarity: 'common', price: { coins: 0 }, color: '#8fa5c0' },
+    { id: 'emote_flex', cat: 'emote', name: 'Flex', rarity: 'uncommon', price: { coins: 400 }, color: '#5fd97a' },
+    { id: 'emote_spin', cat: 'emote', name: 'Victory Spin', rarity: 'rare', price: { coins: 900 }, color: '#4fa8ff' },
+    { id: 'emote_bow', cat: 'emote', name: 'Royal Bow', rarity: 'epic', price: { gems: 90 }, color: '#b968ff' },
+    { id: 'emote_starburst', cat: 'emote', name: 'Starburst', rarity: 'legendary', price: { gems: 200 }, color: '#ffb23e' }
+  ];
+
+  var MISSION_POOL = {
+    daily: [
+      { id: 'coins500', desc: 'Collect {t} Coins', stat: 'coinsThisPeriod', target: 500, reward: { coins: 150 } },
+      { id: 'survive3m', desc: 'Survive {t} Seconds in one run', stat: 'bestSurvivalThisPeriod', target: 180, reward: { coins: 200 } },
+      { id: 'combo20', desc: 'Reach Combo x{t}', stat: 'bestComboThisPeriod', target: 20, reward: { gems: 8 } },
+      { id: 'matches3', desc: 'Complete {t} Matches', stat: 'matchesThisPeriod', target: 3, reward: { coins: 180 } },
+      { id: 'ability15', desc: 'Use Ability {t} Times', stat: 'abilityUsesThisPeriod', target: 15, reward: { coins: 150 } },
+      { id: 'score10k', desc: 'Get {t} Score in one run', stat: 'bestScoreThisPeriod', target: 10000, reward: { gems: 10 } }
+    ],
+    weekly: [
+      { id: 'coins3000', desc: 'Collect {t} Coins', stat: 'coinsThisPeriod', target: 3000, reward: { coins: 800, gems: 10 } },
+      { id: 'matches20', desc: 'Complete {t} Matches', stat: 'matchesThisPeriod', target: 20, reward: { coins: 1000 } },
+      { id: 'combo40', desc: 'Reach Combo x{t}', stat: 'bestComboThisPeriod', target: 40, reward: { gems: 25 } },
+      { id: 'score50k', desc: 'Get {t} Total Score across runs', stat: 'scoreSumThisPeriod', target: 50000, reward: { gems: 30 } },
+      { id: 'enemies100', desc: 'Defeat {t} Enemies', stat: 'enemiesThisPeriod', target: 100, reward: { coins: 900 } }
+    ]
+  };
+
+  var ACHIEVEMENTS = [
+    { id: 'first_run', name: 'FIRST RUN', desc: 'Play your first game.', stat: 'gamesPlayed', target: 1, reward: { coins: 100 } },
+    { id: 'coin_master', name: 'COIN MASTER', desc: 'Collect 10,000 coins (lifetime).', stat: 'lifetimeCoins', target: 10000, reward: { gems: 40 } },
+    { id: 'combo_king', name: 'COMBO KING', desc: 'Reach Combo x50.', stat: 'bestCombo', target: 50, reward: { gems: 30 } },
+    { id: 'speed_demon', name: 'SPEED DEMON', desc: 'Complete a run without taking damage.', stat: 'damagelessWins', target: 1, reward: { gems: 25 } },
+    { id: 'legend', name: 'LEGEND', desc: 'Reach Level 50.', stat: 'level', target: 50, reward: { gems: 100 } },
+    { id: 'survivor', name: 'SURVIVOR', desc: 'Survive 5 minutes in one run.', stat: 'bestSurvivalMs', target: 300000, reward: { coins: 400 } },
+    { id: 'ability_master', name: 'ABILITY MASTER', desc: 'Use abilities 200 times (lifetime).', stat: 'abilityUses', target: 200, reward: { coins: 500 } }
+  ];
+
+  var DAILY_REWARDS = [
+    { day: 1, type: 'coins', amount: 100 },
+    { day: 2, type: 'coins', amount: 150 },
+    { day: 3, type: 'gems', amount: 10 },
+    { day: 4, type: 'random', amount: 1 },
+    { day: 5, type: 'skin', amount: 1 },
+    { day: 6, type: 'gems', amount: 20 },
+    { day: 7, type: 'chest', amount: 'legendary' }
+  ];
+
+  var CHEST_TABLE = {
+    common: { coinsMin: 50, coinsMax: 150, gemChance: 0.1, gemMin: 2, gemMax: 5, skinChance: 0.05 },
+    rare: { coinsMin: 150, coinsMax: 350, gemChance: 0.25, gemMin: 5, gemMax: 12, skinChance: 0.12 },
+    epic: { coinsMin: 300, coinsMax: 600, gemChance: 0.5, gemMin: 10, gemMax: 25, skinChance: 0.25 },
+    legendary: { coinsMin: 600, coinsMax: 1200, gemChance: 0.9, gemMin: 25, gemMax: 60, skinChance: 0.5 }
+  };
+
+  var LEVEL_UNLOCK_TABLE = {
+    3: 'Map: DESERT RUN unlocked',
+    5: 'Character: DASHER unlocked',
+    7: 'Map: FROZEN LAB unlocked',
+    10: 'Character: FROST unlocked',
+    12: 'Map: SKY CITY unlocked',
+    16: 'Map: VOLCANO CORE unlocked',
+    18: 'Character: PHANTOM unlocked'
+  };
+
+  function xpForLevel(level) {
+    return Math.round(120 * Math.pow(level, 1.42) + 80);
+  }
+
+  RV.Data = {
+    RARITY: RARITY,
+    RARITY_COLOR: RARITY_COLOR,
+    CHARACTERS: CHARACTERS,
+    MAPS: MAPS,
+    SHOP_ITEMS: SHOP_ITEMS,
+    MISSION_POOL: MISSION_POOL,
+    ACHIEVEMENTS: ACHIEVEMENTS,
+    DAILY_REWARDS: DAILY_REWARDS,
+    CHEST_TABLE: CHEST_TABLE,
+    LEVEL_UNLOCK_TABLE: LEVEL_UNLOCK_TABLE,
+    xpForLevel: xpForLevel,
+    getCharacter: function (id) { return CHARACTERS.filter(function (c) { return c.id === id; })[0]; },
+    getMap: function (id) { return MAPS.filter(function (m) { return m.id === id; })[0]; },
+    getShopItem: function (id) { return SHOP_ITEMS.filter(function (s) { return s.id === id; })[0]; }
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Data/Progression.js ==== */
+/* RUSHVERSE - Data/Progression.js
+   All currency, XP/level, mission, achievement and chest logic lives here.
+   Everything reads/writes through RV.Save so state always persists. */
+(function (RV) {
+  'use strict';
+
+  var Data = RV.Data;
+  var listeners = {};
+
+  function on(evt, fn) {
+    (listeners[evt] = listeners[evt] || []).push(fn);
+  }
+  function emit(evt, payload) {
+    (listeners[evt] || []).forEach(function (fn) { fn(payload); });
+  }
+
+  function save() { return RV.Save.get(); }
+
+  // ---------- Currency ----------
+  function addCoins(amount) {
+    if (amount <= 0) return;
+    var s = save();
+    s.coins += amount;
+    s.lifetimeCoins += amount;
+    RV.Save.save();
+    checkAchievements();
+  }
+  function spendCoins(amount) {
+    var s = save();
+    if (s.coins < amount) return false;
+    s.coins -= amount;
+    RV.Save.save();
+    return true;
+  }
+  function addGems(amount) {
+    if (amount <= 0) return;
+    save().gems += amount;
+    RV.Save.save();
+  }
+  function spendGems(amount) {
+    var s = save();
+    if (s.gems < amount) return false;
+    s.gems -= amount;
+    RV.Save.save();
+    return true;
+  }
+
+  // ---------- XP / Level ----------
+  function addXP(amount) {
+    var s = save();
+    s.xp += amount;
+    var leveledUp = [];
+    var need = Data.xpForLevel(s.level);
+    while (s.xp >= need) {
+      s.xp -= need;
+      s.level += 1;
+      leveledUp.push(s.level);
+      need = Data.xpForLevel(s.level);
+    }
+    RV.Save.save();
+    if (leveledUp.length) {
+      leveledUp.forEach(function (lvl) {
+        emit('levelup', { level: lvl, unlock: Data.LEVEL_UNLOCK_TABLE[lvl] || null });
+      });
+      checkAchievements();
+      checkCharacterUnlocks();
+      checkMapUnlocks();
+    }
+    return leveledUp;
+  }
+  function xpProgress() {
+    var s = save();
+    var need = Data.xpForLevel(s.level);
+    return { xp: s.xp, need: need, level: s.level, pct: Math.min(1, s.xp / need) };
+  }
+
+  // ---------- Character / Map unlocks ----------
+  function checkCharacterUnlocks() {
+    var s = save();
+    Data.CHARACTERS.forEach(function (c) {
+      if (s.characters.owned.indexOf(c.id) !== -1) return;
+      var u = c.unlock;
+      if (u.type === 'level' && s.level >= u.value) unlockCharacter(c.id);
+    });
+  }
+  function unlockCharacter(id) {
+    var s = save();
+    if (s.characters.owned.indexOf(id) === -1) {
+      s.characters.owned.push(id);
+      RV.Save.save();
+      emit('characterUnlocked', Data.getCharacter(id));
+    }
+  }
+  function checkMapUnlocks() {
+    var s = save();
+    Data.MAPS.forEach(function (m) {
+      if (s.maps.unlocked.indexOf(m.id) !== -1) return;
+      var u = m.unlock;
+      if (u.type === 'default' || (u.type === 'level' && s.level >= u.value)) {
+        s.maps.unlocked.push(m.id);
+        RV.Save.save();
+        emit('mapUnlocked', m);
+      }
+    });
+  }
+
+  // ---------- Missions ----------
+  function periodKey(kind) {
+    var now = Date.now();
+    var day = 86400000;
+    if (kind === 'daily') return Math.floor(now / day);
+    return Math.floor(now / (day * 7));
+  }
+
+  function rollMissions(kind) {
+    var pool = Data.MISSION_POOL[kind].slice();
+    var picks = [];
+    var count = kind === 'daily' ? 4 : 5;
+    while (picks.length < count && pool.length) {
+      var idx = Math.floor(Math.random() * pool.length);
+      picks.push(pool.splice(idx, 1)[0]);
+    }
+    return picks.map(function (m) {
+      return { id: m.id, progress: 0, claimed: false, complete: false };
+    });
+  }
+
+  function ensureMissions() {
+    var s = save();
+    var dKey = periodKey('daily');
+    var wKey = periodKey('weekly');
+    var changed = false;
+    if (!s.missions.daily || s.missions.dailyResetAt !== dKey) {
+      s.missions.daily = rollMissions('daily');
+      s.missions.dailyResetAt = dKey;
+      s._periodStatsDaily = {};
+      changed = true;
+    }
+    if (!s.missions.weekly || s.missions.weeklyResetAt !== wKey) {
+      s.missions.weekly = rollMissions('weekly');
+      s.missions.weeklyResetAt = wKey;
+      s._periodStatsWeekly = {};
+      changed = true;
+    }
+    if (changed) RV.Save.save();
+  }
+
+  function missionDef(kind, id) {
+    return Data.MISSION_POOL[kind].filter(function (m) { return m.id === id; })[0];
+  }
+
+  function updateMissionStat(statName, value, mode) {
+    ensureMissions();
+    var s = save();
+    ['daily', 'weekly'].forEach(function (kind) {
+      (s.missions[kind] || []).forEach(function (entry) {
+        var def = missionDef(kind, entry.id);
+        if (!def || def.stat !== statName || entry.complete) return;
+        if (mode === 'max') entry.progress = Math.max(entry.progress, value);
+        else entry.progress += value;
+        if (entry.progress >= def.target) {
+          entry.progress = def.target;
+          entry.complete = true;
+          emit('missionComplete', { kind: kind, id: entry.id, def: def });
+        }
+      });
+    });
+    RV.Save.save();
+  }
+
+  function claimMission(kind, id) {
+    var s = save();
+    var entry = (s.missions[kind] || []).filter(function (e) { return e.id === id; })[0];
+    var def = missionDef(kind, id);
+    if (!entry || !def || !entry.complete || entry.claimed) return null;
+    entry.claimed = true;
+    grantReward(def.reward);
+    RV.Save.save();
+    return def.reward;
+  }
+
+  function getMissions() {
+    ensureMissions();
+    var s = save();
+    return {
+      daily: s.missions.daily.map(function (e) { return decorateMission('daily', e); }),
+      weekly: s.missions.weekly.map(function (e) { return decorateMission('weekly', e); })
+    };
+  }
+  function decorateMission(kind, entry) {
+    var def = missionDef(kind, entry.id);
+    return {
+      id: entry.id, kind: kind,
+      desc: def.desc.replace('{t}', def.target.toLocaleString()),
+      progress: entry.progress, target: def.target,
+      complete: entry.complete, claimed: entry.claimed,
+      reward: def.reward
+    };
+  }
+
+  // ---------- Achievements ----------
+  function checkAchievements() {
+    var s = save();
+    Data.ACHIEVEMENTS.forEach(function (a) {
+      var rec = s.achievements[a.id] || { progress: 0, complete: false, claimed: false };
+      var statVal = s[a.stat] || 0;
+      rec.progress = Math.min(a.target, statVal);
+      if (!rec.complete && rec.progress >= a.target) {
+        rec.complete = true;
+        emit('achievementComplete', a);
+      }
+      s.achievements[a.id] = rec;
+    });
+    RV.Save.save();
+  }
+  function claimAchievement(id) {
+    var s = save();
+    var a = Data.ACHIEVEMENTS.filter(function (x) { return x.id === id; })[0];
+    var rec = s.achievements[id];
+    if (!a || !rec || !rec.complete || rec.claimed) return null;
+    rec.claimed = true;
+    grantReward(a.reward);
+    RV.Save.save();
+    return a.reward;
+  }
+  function getAchievements() {
+    var s = save();
+    return Data.ACHIEVEMENTS.map(function (a) {
+      var rec = s.achievements[a.id] || { progress: 0, complete: false, claimed: false };
+      return {
+        id: a.id, name: a.name, desc: a.desc,
+        progress: rec.progress, target: a.target,
+        complete: rec.complete, claimed: rec.claimed, reward: a.reward
+      };
+    });
+  }
+
+  // ---------- Rewards / Chests ----------
+  function grantReward(reward) {
+    if (!reward) return;
+    if (reward.coins) addCoins(reward.coins);
+    if (reward.gems) addGems(reward.gems);
+    if (reward.chest) addChest(reward.chest, 1);
+    if (reward.key) addKey(reward.key, 1);
+    if (reward.skin) grantRandomSkin();
+  }
+  function addChest(rarity, n) {
+    var s = save();
+    s.chests[rarity] = (s.chests[rarity] || 0) + n;
+    RV.Save.save();
+  }
+  function addKey(rarity, n) {
+    var s = save();
+    s.keys[rarity] = (s.keys[rarity] || 0) + n;
+    RV.Save.save();
+  }
+  function grantRandomSkin() {
+    var s = save();
+    var locked = Data.SHOP_ITEMS.filter(function (it) { return s.skins.owned.indexOf(it.id) === -1; });
+    if (!locked.length) { addCoins(300); return null; }
+    var pick = locked[Math.floor(Math.random() * locked.length)];
+    s.skins.owned.push(pick.id);
+    RV.Save.save();
+    return pick;
+  }
+  function openChest(rarity) {
+    var s = save();
+    if ((s.keys[rarity] || 0) < 1) return null;
+    s.keys[rarity] -= 1;
+    if ((s.chests[rarity] || 0) > 0) s.chests[rarity] -= 1;
+    var table = Data.CHEST_TABLE[rarity];
+    var coins = Math.round(table.coinsMin + Math.random() * (table.coinsMax - table.coinsMin));
+    var result = { coins: coins, gems: 0, skin: null };
+    if (Math.random() < table.gemChance) {
+      result.gems = Math.round(table.gemMin + Math.random() * (table.gemMax - table.gemMin));
+    }
+    if (Math.random() < table.skinChance) {
+      result.skin = grantRandomSkin();
+    }
+    addCoins(coins);
+    if (result.gems) addGems(result.gems);
+    RV.Save.save();
+    return result;
+  }
+
+  // ---------- Public API ----------
+  RV.Progress = {
+    on: on, emit: emit,
+    addCoins: addCoins, spendCoins: spendCoins,
+    addGems: addGems, spendGems: spendGems,
+    addXP: addXP, xpProgress: xpProgress,
+    checkCharacterUnlocks: checkCharacterUnlocks,
+    checkMapUnlocks: checkMapUnlocks,
+    getMissions: getMissions, updateMissionStat: updateMissionStat, claimMission: claimMission,
+    getAchievements: getAchievements, checkAchievements: checkAchievements, claimAchievement: claimAchievement,
+    addChest: addChest, addKey: addKey, openChest: openChest, grantReward: grantReward, grantRandomSkin: grantRandomSkin
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Audio/AudioManager.js ==== */
+/* RUSHVERSE - Audio/AudioManager.js
+   Fully procedural audio (Web Audio API oscillators/noise) so the game needs
+   zero binary asset files. Covers all SFX cues plus a generative ambient
+   music bed per map. Respects Settings volumes at all times. */
+(function (RV) {
+  'use strict';
+
+  var ctx = null;
+  var musicGain, sfxGain, masterGain;
+  var musicNodes = [];
+  var musicTimer = null;
+  var started = false;
+
+  function ensureCtx() {
+    if (ctx) return ctx;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+    musicGain = ctx.createGain();
+    musicGain.connect(masterGain);
+    sfxGain = ctx.createGain();
+    sfxGain.connect(masterGain);
+    applyVolumes();
+    return ctx;
+  }
+
+  function applyVolumes() {
+    if (!ctx) return;
+    var s = RV.Save.get().settings;
+    musicGain.gain.setTargetAtTime(s.musicVolume * 0.5, ctx.currentTime, 0.05);
+    sfxGain.gain.setTargetAtTime(s.sfxVolume, ctx.currentTime, 0.05);
+  }
+
+  function resume() {
+    ensureCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    started = true;
+  }
+
+  function tone(freq, dur, opts) {
+    if (!started) return;
+    opts = opts || {};
+    var t0 = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = opts.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (opts.slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, opts.slideTo), t0 + dur);
+    var peak = opts.volume != null ? opts.volume : 0.22;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + Math.min(0.02, dur * 0.3));
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
+
+  function noiseBurst(dur, opts) {
+    if (!started) return;
+    opts = opts || {};
+    var t0 = ctx.currentTime;
+    var bufferSize = ctx.sampleRate * dur;
+    var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    var src = ctx.createBufferSource();
+    src.buffer = buffer;
+    var filter = ctx.createBiquadFilter();
+    filter.type = opts.filterType || 'lowpass';
+    filter.frequency.value = opts.filterFreq || 2000;
+    var gain = ctx.createGain();
+    gain.gain.value = opts.volume != null ? opts.volume : 0.2;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(sfxGain);
+    src.start(t0);
+  }
+
+  var SFX = {
+    click: function () { tone(520, 0.06, { type: 'square', volume: 0.15 }); },
+    buttonPress: function () { tone(340, 0.05, { type: 'square', volume: 0.14 }); },
+    coin: function () { tone(880, 0.09, { type: 'triangle', slideTo: 1400, volume: 0.2 }); },
+    gem: function () { tone(1200, 0.14, { type: 'sine', slideTo: 1800, volume: 0.22 }); tone(1600, 0.16, { type: 'sine', volume: 0.12 }); },
+    dash: function () { tone(200, 0.14, { type: 'sawtooth', slideTo: 60, volume: 0.18 }); noiseBurst(0.12, { volume: 0.08, filterFreq: 3000 }); },
+    jump: function () { tone(300, 0.12, { type: 'sine', slideTo: 520, volume: 0.16 }); },
+    land: function () { tone(140, 0.08, { type: 'sine', slideTo: 80, volume: 0.12 }); },
+    ability: function () { tone(220, 0.2, { type: 'sawtooth', slideTo: 660, volume: 0.2 }); noiseBurst(0.18, { volume: 0.1 }); },
+    hit: function () { noiseBurst(0.15, { volume: 0.22, filterFreq: 900 }); tone(120, 0.15, { type: 'square', slideTo: 40, volume: 0.14 }); },
+    enemyDefeat: function () { tone(500, 0.1, { type: 'square', slideTo: 900, volume: 0.16 }); noiseBurst(0.08, { volume: 0.1 }); },
+    combo: function (n) { tone(600 + Math.min(n, 40) * 12, 0.09, { type: 'triangle', volume: 0.18 }); },
+    powerup: function () { tone(700, 0.1, { type: 'sine', slideTo: 1100, volume: 0.2 }); tone(1000, 0.16, { type: 'sine', slideTo: 1400, volume: 0.12 }); },
+    levelUp: function () {
+      [0, 0.09, 0.18].forEach(function (t, i) {
+        setTimeout(function () { tone(440 * Math.pow(1.26, i), 0.22, { type: 'triangle', volume: 0.22 }); }, t * 1000);
+      });
+    },
+    chestOpen: function () {
+      tone(200, 0.3, { type: 'sawtooth', slideTo: 900, volume: 0.16 });
+      setTimeout(function () { tone(900, 0.4, { type: 'sine', slideTo: 1500, volume: 0.2 }); }, 250);
+    },
+    achievement: function () {
+      [0, 0.1, 0.2].forEach(function (t, i) {
+        setTimeout(function () { tone(520 * Math.pow(1.2, i), 0.18, { type: 'sine', volume: 0.2 }); }, t * 1000);
+      });
+    },
+    gameOver: function () { tone(400, 0.5, { type: 'sawtooth', slideTo: 80, volume: 0.2 }); },
+    highScore: function () {
+      [0, 0.12, 0.24, 0.36].forEach(function (t, i) {
+        setTimeout(function () { tone(500 * Math.pow(1.19, i), 0.2, { type: 'triangle', volume: 0.22 }); }, t * 1000);
+      });
+    },
+    eventAlert: function () { tone(300, 0.18, { type: 'square', slideTo: 500, volume: 0.16 }); },
+    shield: function () { tone(500, 0.2, { type: 'sine', volume: 0.15 }); },
+    warning: function () { tone(220, 0.12, { type: 'square', volume: 0.14 }); }
+  };
+
+  var MUSIC_PROFILES = {
+    neon: { base: 55, scale: [0, 3, 5, 7, 10], tempo: 0.42, wave: 'sawtooth', filter: 1400 },
+    desert: { base: 49, scale: [0, 2, 4, 7, 9], tempo: 0.55, wave: 'triangle', filter: 900 },
+    frozen: { base: 52, scale: [0, 2, 3, 7, 8], tempo: 0.6, wave: 'sine', filter: 1800 },
+    sky: { base: 58, scale: [0, 4, 7, 9, 11], tempo: 0.48, wave: 'triangle', filter: 2000 },
+    volcano: { base: 46, scale: [0, 1, 5, 6, 10], tempo: 0.38, wave: 'sawtooth', filter: 700 }
+  };
+
+  function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  function stopMusic() {
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    musicNodes.forEach(function (n) { try { n.stop(); } catch (e) {} });
+    musicNodes = [];
+  }
+
+  function playMusic(key, intensity) {
+    if (!started) return;
+    stopMusic();
+    var profile = MUSIC_PROFILES[key] || MUSIC_PROFILES.neon;
+    var step = 0;
+    var filterNode = ctx.createBiquadFilter();
+    filterNode.type = 'lowpass';
+    filterNode.frequency.value = profile.filter;
+    filterNode.connect(musicGain);
+
+    function playStep() {
+      var speedMul = 1 + (intensity ? intensity() : 0) * 0.6;
+      var degree = profile.scale[step % profile.scale.length];
+      var octave = (Math.floor(step / profile.scale.length) % 2) * 12;
+      var freq = midiToFreq(profile.base + degree + octave);
+      var t0 = ctx.currentTime;
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.type = profile.wave;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + profile.tempo * 0.9);
+      osc.connect(g);
+      g.connect(filterNode);
+      osc.start(t0);
+      osc.stop(t0 + profile.tempo);
+      if (step % 4 === 0) {
+        var bassOsc = ctx.createOscillator();
+        var bassGain = ctx.createGain();
+        bassOsc.type = 'sine';
+        bassOsc.frequency.value = midiToFreq(profile.base - 12);
+        bassGain.gain.setValueAtTime(0.0001, t0);
+        bassGain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.05);
+        bassGain.gain.exponentialRampToValueAtTime(0.0001, t0 + profile.tempo * 3.6);
+        bassOsc.connect(bassGain);
+        bassGain.connect(filterNode);
+        bassOsc.start(t0);
+        bassOsc.stop(t0 + profile.tempo * 3.6);
+      }
+      step++;
+      var nextDelay = (profile.tempo / speedMul) * 1000;
+      musicTimer = setTimeout(playStep, nextDelay);
+    }
+    playStep();
+  }
+
+  RV.Audio = {
+    resume: resume,
+    applyVolumes: applyVolumes,
+    isStarted: function () { return started; },
+    sfx: SFX,
+    playMusic: playMusic,
+    stopMusic: stopMusic
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Effects/Effects.js ==== */
+/* RUSHVERSE - Effects/Effects.js
+   Particle bursts, floating combat text, and screen shake. Particle budget
+   scales with the Graphics setting so low-end devices stay smooth. */
+(function (RV) {
+  'use strict';
+
+  var particles = [];
+  var floaters = [];
+  var shakeMag = 0;
+  var shakeDecay = 0;
+
+  var QUALITY_BUDGET = { low: 40, medium: 140, high: 320 };
+
+  function quality() { return RV.Save.get().settings.graphics || 'medium'; }
+  function budget() { return QUALITY_BUDGET[quality()] || 140; }
+
+  function burst(x, y, color, opts) {
+    opts = opts || {};
+    var count = Math.round((opts.count || 12) * (quality() === 'low' ? 0.35 : quality() === 'medium' ? 0.7 : 1));
+    for (var i = 0; i < count; i++) {
+      if (particles.length > budget()) particles.shift();
+      var angle = Math.random() * Math.PI * 2;
+      var speed = (opts.speed || 90) * (0.4 + Math.random() * 0.9);
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - (opts.upBias || 0),
+        life: 0, maxLife: (opts.life || 0.5) * (0.7 + Math.random() * 0.6),
+        size: (opts.size || 4) * (0.6 + Math.random() * 0.8),
+        color: color,
+        gravity: opts.gravity != null ? opts.gravity : 140,
+        glow: opts.glow !== false
+      });
+    }
+  }
+
+  function floatText(x, y, text, color, opts) {
+    opts = opts || {};
+    floaters.push({
+      x: x, y: y, text: text, color: color,
+      life: 0, maxLife: opts.life || 0.9,
+      size: opts.size || 18, vy: opts.vy || -55
+    });
+  }
+
+  function shake(mag) {
+    shakeMag = Math.max(shakeMag, mag);
+    shakeDecay = 4.5;
+  }
+
+  function update(dt) {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.life += dt;
+      if (p.life >= p.maxLife) { particles.splice(i, 1); continue; }
+      p.vy += p.gravity * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    for (i = floaters.length - 1; i >= 0; i--) {
+      var f = floaters[i];
+      f.life += dt;
+      if (f.life >= f.maxLife) { floaters.splice(i, 1); continue; }
+      f.y += f.vy * dt;
+    }
+    if (shakeMag > 0) {
+      shakeMag = Math.max(0, shakeMag - shakeDecay * dt * 60 * dt);
+      shakeMag *= Math.max(0, 1 - dt * 6);
+      if (shakeMag < 0.05) shakeMag = 0;
+    }
+  }
+
+  function getShakeOffset() {
+    if (shakeMag <= 0) return { x: 0, y: 0 };
+    return {
+      x: (Math.random() * 2 - 1) * shakeMag,
+      y: (Math.random() * 2 - 1) * shakeMag
+    };
+  }
+
+  function drawWorldParticles(ctx, worldToScreen) {
+    particles.forEach(function (p) {
+      var pos = worldToScreen(p.x, p.y);
+      if (!pos || pos.cull) return;
+      var a = 1 - p.life / p.maxLife;
+      ctx.globalAlpha = Math.max(0, a);
+      if (p.glow) {
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10 * pos.scale;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, p.size * pos.scale, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  function drawScreenFloaters(ctx, worldToScreen) {
+    floaters.forEach(function (f) {
+      var pos = worldToScreen(f.x, f.y);
+      if (!pos) return;
+      var a = 1 - f.life / f.maxLife;
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = f.color;
+      ctx.font = '700 ' + Math.round(f.size * (pos.scale || 1)) + 'px Segoe UI, Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(f.text, pos.x, pos.y);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function clear() {
+    particles.length = 0;
+    floaters.length = 0;
+    shakeMag = 0;
+  }
+
+  RV.Effects = {
+    burst: burst,
+    floatText: floatText,
+    shake: shake,
+    update: update,
+    getShakeOffset: getShakeOffset,
+    drawWorldParticles: drawWorldParticles,
+    drawScreenFloaters: drawScreenFloaters,
+    clear: clear,
+    quality: quality
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Game/Camera.js ==== */
+/* RUSHVERSE - Game/Camera.js
+   Pseudo-3D third-person camera. The player is always anchored near the
+   bottom-center of the screen; every other entity is projected relative to
+   the player's world position using a perspective transform, so the arena
+   scrolls under a camera that behaves like it is floating just behind and
+   above the runner. Circular arena boundary keeps "small arena" scale. */
+(function (RV) {
+  'use strict';
+
+  var BEHIND = 3.4;   // world units visible behind the player
+  var AHEAD = 13;      // world units visible ahead of the player
+  var RANGE = BEHIND + AHEAD;
+  var NEAR_SCALE = 1.35;
+  var FAR_SCALE = 0.32;
+
+  var cam = { x: 0, z: 0, width: 800, height: 600 };
+
+  function resize(w, h) { cam.width = w; cam.height = h; }
+  function follow(x, z) { cam.x = x; cam.z = z; }
+
+  function horizonY() { return cam.height * 0.24; }
+  function groundY() { return cam.height * 0.93; }
+  function centerX() { return cam.width * 0.5; }
+
+  // Projects a world (x,z) into {x,y,scale,cull,depth}
+  function project(wx, wz) {
+    var relX = wx - cam.x;
+    var relZ = wz - cam.z;
+    var t = (relZ + BEHIND) / RANGE;
+    var cull = t < -0.08 || t > 1.08;
+    var tc = Math.max(0, Math.min(1, t));
+    var curve = Math.pow(tc, 0.88);
+    var sy = groundY() - curve * (groundY() - horizonY());
+    var scale = NEAR_SCALE + (FAR_SCALE - NEAR_SCALE) * Math.pow(tc, 0.8);
+    var pxPerUnit = cam.width * 0.052;
+    var sx = centerX() + relX * scale * pxPerUnit;
+    return { x: sx, y: sy, scale: scale, cull: cull, depth: relZ };
+  }
+
+  function playerScreenAnchor() {
+    return project(cam.x, cam.z);
+  }
+
+  RV.Camera = {
+    resize: resize, follow: follow, project: project,
+    playerScreenAnchor: playerScreenAnchor,
+    BEHIND: BEHIND, AHEAD: AHEAD,
+    get x() { return cam.x; }, get z() { return cam.z; },
+    get width() { return cam.width; }, get height() { return cam.height; },
+    horizonY: horizonY, groundY: groundY, centerX: centerX
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Player/Controls.js ==== */
+/* RUSHVERSE - Player/Controls.js
+   Touch-first input: virtual joystick, Dash/Jump/Ability buttons, and a
+   swipe-to-dodge gesture layer. Falls back to WASD+Space+Shift+E on desktop
+   for testing. Builds its own DOM inside #controlsLayer. */
+(function (RV) {
+  'use strict';
+
+  var state = {
+    moveX: 0, moveY: 0,
+    dashPressed: false, jumpPressed: false, abilityPressed: false,
+    swipe: null // {dx,dz} set for one frame when a dodge swipe completes
+  };
+
+  var els = {};
+  var joystick = { active: false, pointerId: null, baseX: 0, baseY: 0, knobMax: 46 };
+  var swipeTrack = { active: false, pointerId: null, x: 0, y: 0, t: 0 };
+
+  function vibrate(ms) {
+    var s = RV.Save.get().settings;
+    if (s.vibration && navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  function unlockAudio() {
+    RV.Audio.resume();
+  }
+
+  function build(container) {
+    container.innerHTML =
+      '<div id="joyBase" class="joy-base">' +
+        '<div id="joyKnob" class="joy-knob"></div>' +
+      '</div>' +
+      '<div id="swipeZone" class="swipe-zone"></div>' +
+      '<div class="action-cluster">' +
+        '<button id="btnAbility" class="action-btn ability-btn" aria-label="Ability">' +
+          '<span class="btn-icon">&#9889;</span><span class="btn-cd" id="abilityCd"></span>' +
+        '</button>' +
+        '<button id="btnJump" class="action-btn jump-btn" aria-label="Jump"><span class="btn-icon">&#8593;</span></button>' +
+        '<button id="btnDash" class="action-btn dash-btn" aria-label="Dash"><span class="btn-icon">&#187;</span></button>' +
+      '</div>';
+
+    els.joyBase = container.querySelector('#joyBase');
+    els.joyKnob = container.querySelector('#joyKnob');
+    els.swipeZone = container.querySelector('#swipeZone');
+    els.btnAbility = container.querySelector('#btnAbility');
+    els.btnJump = container.querySelector('#btnJump');
+    els.btnDash = container.querySelector('#btnDash');
+    els.abilityCd = container.querySelector('#abilityCd');
+
+    applySide();
+    bindJoystick();
+    bindButton(els.btnDash, function () { state.dashPressed = true; });
+    bindButton(els.btnJump, function () { state.jumpPressed = true; });
+    bindButton(els.btnAbility, function () { state.abilityPressed = true; });
+    bindSwipe();
+    bindKeyboard();
+  }
+
+  function applySide() {
+    var side = RV.Save.get().settings.joystickSide || 'left';
+    els.joyBase.classList.toggle('right-side', side === 'right');
+    document.querySelector('.action-cluster').classList.toggle('left-side', side === 'right');
+  }
+
+  function bindJoystick() {
+    var base = els.joyBase, knob = els.joyKnob;
+    function start(e) {
+      unlockAudio();
+      var t = e.changedTouches ? e.changedTouches[0] : e;
+      joystick.active = true;
+      joystick.pointerId = t.identifier != null ? t.identifier : 'mouse';
+      var rect = base.getBoundingClientRect();
+      joystick.baseX = rect.left + rect.width / 2;
+      joystick.baseY = rect.top + rect.height / 2;
+      move(t);
+      e.preventDefault();
+    }
+    function move(t) {
+      var dx = t.clientX - joystick.baseX;
+      var dy = t.clientY - joystick.baseY;
+      var dist = Math.min(joystick.knobMax, Math.hypot(dx, dy));
+      var ang = Math.atan2(dy, dx);
+      var kx = Math.cos(ang) * dist, ky = Math.sin(ang) * dist;
+      knob.style.transform = 'translate(' + kx + 'px,' + ky + 'px)';
+      var norm = dist / joystick.knobMax;
+      state.moveX = Math.cos(ang) * norm;
+      state.moveY = Math.sin(ang) * norm;
+    }
+    function findTouch(e) {
+      if (!e.changedTouches) return e;
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystick.pointerId) return e.changedTouches[i];
+      }
+      return null;
+    }
+    function moveHandler(e) {
+      if (!joystick.active) return;
+      var t = findTouch(e);
+      if (!t) return;
+      move(t);
+      e.preventDefault();
+    }
+    function end(e) {
+      if (!joystick.active) return;
+      var t = findTouch(e);
+      if (e.changedTouches && !t) return;
+      joystick.active = false;
+      state.moveX = 0; state.moveY = 0;
+      knob.style.transform = 'translate(0,0)';
+    }
+    base.addEventListener('touchstart', start, { passive: false });
+    base.addEventListener('mousedown', start);
+    window.addEventListener('touchmove', moveHandler, { passive: false });
+    window.addEventListener('mousemove', moveHandler);
+    window.addEventListener('touchend', end);
+    window.addEventListener('touchcancel', end);
+    window.addEventListener('mouseup', end);
+  }
+
+  function bindButton(btn, fn) {
+    function press(e) {
+      unlockAudio();
+      btn.classList.add('pressed');
+      RV.Audio.sfx.buttonPress();
+      vibrate(12);
+      fn();
+      e.preventDefault();
+    }
+    function release() { btn.classList.remove('pressed'); }
+    btn.addEventListener('touchstart', press, { passive: false });
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('touchend', release);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  }
+
+  function bindSwipe() {
+    var zone = els.swipeZone;
+    function start(e) {
+      var t = e.changedTouches ? e.changedTouches[0] : e;
+      swipeTrack.active = true;
+      swipeTrack.pointerId = t.identifier != null ? t.identifier : 'mouse';
+      swipeTrack.x = t.clientX; swipeTrack.y = t.clientY; swipeTrack.t = performance.now();
+    }
+    function end(e) {
+      if (!swipeTrack.active) return;
+      var t = e.changedTouches ? e.changedTouches[0] : e;
+      swipeTrack.active = false;
+      var dx = t.clientX - swipeTrack.x;
+      var dy = t.clientY - swipeTrack.y;
+      var dt = performance.now() - swipeTrack.t;
+      var dist = Math.hypot(dx, dy);
+      if (dist > 40 && dt < 400) {
+        state.swipe = { dx: dx / dist, dz: dy / dist };
+      }
+    }
+    zone.addEventListener('touchstart', start, { passive: true });
+    zone.addEventListener('mousedown', start);
+    zone.addEventListener('touchend', end);
+    zone.addEventListener('mouseup', end);
+  }
+
+  var keys = {};
+  function bindKeyboard() {
+    window.addEventListener('keydown', function (e) {
+      unlockAudio();
+      keys[e.code] = true;
+      if (e.code === 'Space') state.jumpPressed = true;
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') state.dashPressed = true;
+      if (e.code === 'KeyE') state.abilityPressed = true;
+    });
+    window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+  }
+
+  function pollKeyboardMove() {
+    var mx = 0, mz = 0;
+    if (keys.KeyA || keys.ArrowLeft) mx -= 1;
+    if (keys.KeyD || keys.ArrowRight) mx += 1;
+    if (keys.KeyW || keys.ArrowUp) mz -= 1;
+    if (keys.KeyS || keys.ArrowDown) mz += 1;
+    if (mx || mz) {
+      var len = Math.hypot(mx, mz);
+      state.moveX = mx / len; state.moveY = mz / len;
+    }
+  }
+
+  function setAbilityCooldownDisplay(pct) {
+    if (!els.abilityCd) return;
+    els.abilityCd.style.height = Math.round((1 - pct) * 100) + '%';
+  }
+
+  function consumeFrame() {
+    pollKeyboardMove();
+    var out = {
+      moveX: state.moveX, moveY: state.moveY,
+      dash: state.dashPressed, jump: state.jumpPressed, ability: state.abilityPressed,
+      swipe: state.swipe
+    };
+    state.dashPressed = false; state.jumpPressed = false; state.abilityPressed = false;
+    state.swipe = null;
+    if (!joystick.active) { state.moveX = 0; state.moveY = 0; }
+    return out;
+  }
+
+  RV.Controls = {
+    build: build,
+    applySide: applySide,
+    consumeFrame: consumeFrame,
+    setAbilityCooldownDisplay: setAbilityCooldownDisplay,
+    vibrate: vibrate
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Player/Player.js ==== */
+/* RUSHVERSE - Player/Player.js
+   Player entity: movement, dash, jump, swipe-dodge, HP/invulnerability,
+   status effects (shield/speed/magnet/multiplier/freeze-immune/slowed) and
+   rendering. Ability *logic* (what it does to enemies/coins) is executed by
+   GameLoop, which listens for the 'ability' event this module emits. */
+(function (RV) {
+  'use strict';
+
+  var BASE_SPEED = 5.2;      // world units / sec
+  var DASH_SPEED = 15;
+  var DASH_TIME = 0.18;
+  var DASH_COOLDOWN = 1.35;
+  var SWIPE_DODGE_SPEED = 11;
+  var SWIPE_DODGE_TIME = 0.16;
+  var SWIPE_COOLDOWN = 0.9;
+  var JUMP_TIME = 0.55;
+  var MAX_HP = 3;
+  var HIT_INVULN = 1.1;
+
+  function create(characterDef) {
+    return {
+      x: 0, z: 0, facing: 0,
+      radius: 0.55,
+      hp: MAX_HP, maxHp: MAX_HP,
+      character: characterDef,
+      vx: 0, vz: 0,
+      dashTimer: 0, dashCooldown: 0, dashDir: { x: 0, z: -1 },
+      swipeTimer: 0, swipeCooldown: 0,
+      jumpTimer: 0,
+      invulnTimer: 1.4, // brief safety window at match start
+      abilityCooldown: 0, abilityActiveTimer: 0,
+      lastMoveDir: { x: 0, z: -1 },
+      status: {
+        shieldTimer: 0, speedTimer: 0, magnetTimer: 0,
+        multiplierTimer: 0, multiplierValue: 1,
+        slowedTimer: 0, secondChance: false
+      },
+      tookDamageThisRun: false,
+      distanceSinceTrail: 0,
+      events: []
+    };
+  }
+
+  function emit(p, type, data) { p.events.push({ type: type, data: data }); }
+  function drainEvents(p) { var e = p.events; p.events = []; return e; }
+
+  function isDashing(p) { return p.dashTimer > 0; }
+  function isSwiping(p) { return p.swipeTimer > 0; }
+  function isAirborne(p) { return p.jumpTimer > 0; }
+  function isInvulnerable(p) { return p.invulnTimer > 0 || isDashing(p) || isSwiping(p) || p.status.shieldTimer > 0 || (p.character.ability.id === 'phase' && p.abilityActiveTimer > 0); }
+  function isFrozenImmune(p) { return p.character.ability.id === 'frost'; }
+
+  function speedMultiplier(p) {
+    var m = 1;
+    if (p.status.speedTimer > 0) m *= 1.55;
+    if (p.status.slowedTimer > 0) m *= 0.5;
+    if (p.character.ability.id === 'dasher' && p.abilityActiveTimer <= 0) m *= 1.05;
+    return m;
+  }
+
+  function update(p, dt, input, arenaRadius) {
+    // timers
+    p.dashTimer = Math.max(0, p.dashTimer - dt);
+    p.dashCooldown = Math.max(0, p.dashCooldown - dt);
+    p.swipeTimer = Math.max(0, p.swipeTimer - dt);
+    p.swipeCooldown = Math.max(0, p.swipeCooldown - dt);
+    p.jumpTimer = Math.max(0, p.jumpTimer - dt);
+    p.invulnTimer = Math.max(0, p.invulnTimer - dt);
+    p.abilityCooldown = Math.max(0, p.abilityCooldown - dt);
+    p.abilityActiveTimer = Math.max(0, p.abilityActiveTimer - dt);
+    var st = p.status;
+    st.shieldTimer = Math.max(0, st.shieldTimer - dt);
+    st.speedTimer = Math.max(0, st.speedTimer - dt);
+    st.magnetTimer = Math.max(0, st.magnetTimer - dt);
+    st.multiplierTimer = Math.max(0, st.multiplierTimer - dt);
+    if (st.multiplierTimer <= 0) st.multiplierValue = 1;
+    st.slowedTimer = Math.max(0, st.slowedTimer - dt);
+
+    var moving = Math.abs(input.moveX) > 0.05 || Math.abs(input.moveY) > 0.05;
+
+    if (isDashing(p)) {
+      p.x += p.dashDir.x * DASH_SPEED * dt;
+      p.z += p.dashDir.z * DASH_SPEED * dt;
+    } else if (isSwiping(p)) {
+      p.x += p.dashDir.x * SWIPE_DODGE_SPEED * dt;
+      p.z += p.dashDir.z * SWIPE_DODGE_SPEED * dt;
+    } else if (moving) {
+      var len = Math.hypot(input.moveX, input.moveY) || 1;
+      var nx = input.moveX / len, nz = input.moveY / len;
+      p.lastMoveDir.x = nx; p.lastMoveDir.z = nz;
+      p.facing = Math.atan2(nx, -nz);
+      var sp = BASE_SPEED * speedMultiplier(p) * Math.min(1, len * 1.3);
+      p.x += nx * sp * dt;
+      p.z += nz * sp * dt;
+    }
+
+    // clamp to circular arena
+    var d = Math.hypot(p.x, p.z);
+    if (d > arenaRadius - p.radius) {
+      var k = (arenaRadius - p.radius) / d;
+      p.x *= k; p.z *= k;
+    }
+
+    // dash trigger
+    if (input.dash && p.dashCooldown <= 0 && !isDashing(p)) {
+      var dashDir = moving ? { x: p.lastMoveDir.x, z: p.lastMoveDir.z } : { x: p.lastMoveDir.x, z: p.lastMoveDir.z };
+      var isBlink = p.character.ability.id === 'blink';
+      p.dashDir = dashDir;
+      p.dashTimer = isBlink ? DASH_TIME * 1.4 : DASH_TIME;
+      p.dashCooldown = isBlink ? DASH_COOLDOWN * 0.55 : DASH_COOLDOWN;
+      emit(p, 'dash', { blink: isBlink });
+    }
+
+    // jump trigger
+    if (input.jump && p.jumpTimer <= 0) {
+      p.jumpTimer = JUMP_TIME;
+      emit(p, 'jump', {});
+    }
+
+    // swipe dodge trigger
+    if (input.swipe && p.swipeCooldown <= 0 && !isDashing(p)) {
+      // screen dx = world x; screen dz(down positive) = world z (toward camera)
+      var mag = Math.hypot(input.swipe.dx, input.swipe.dz) || 1;
+      p.dashDir = { x: input.swipe.dx / mag, z: input.swipe.dz / mag };
+      p.swipeTimer = SWIPE_DODGE_TIME;
+      p.swipeCooldown = SWIPE_COOLDOWN;
+      emit(p, 'swipe', {});
+    }
+
+    // ability trigger
+    if (input.ability && p.abilityCooldown <= 0) {
+      p.abilityCooldown = p.character.ability.cooldown / 1000;
+      p.abilityActiveTimer = p.character.ability.duration / 1000;
+      emit(p, 'ability', { ability: p.character.ability });
+    }
+  }
+
+  function applyHit(p) {
+    if (isInvulnerable(p)) return false;
+    p.hp -= 1;
+    p.invulnTimer = HIT_INVULN;
+    p.tookDamageThisRun = true;
+    emit(p, 'hit', { hp: p.hp });
+    if (p.hp <= 0) {
+      if (p.status.secondChance) {
+        p.status.secondChance = false;
+        p.hp = 1;
+        emit(p, 'secondChance', {});
+        return true;
+      }
+      emit(p, 'died', {});
+    }
+    return true;
+  }
+
+  function grantPowerup(p, type) {
+    switch (type) {
+      case 'shield': p.status.shieldTimer = 6; break;
+      case 'magnet': p.status.magnetTimer = 7; break;
+      case 'speed': p.status.speedTimer = 6; break;
+      case 'multiplier': p.status.multiplierTimer = 8; p.status.multiplierValue = 2; break;
+      case 'freeze': /* handled globally by GameLoop on enemies/obstacles */ break;
+      case 'secondChance': p.status.secondChance = true; break;
+    }
+  }
+
+  function draw(ctx, p, project, skin) {
+    var anchor = project(p.x, p.z);
+    if (!anchor) return;
+    var scale = anchor.scale;
+    var bob = isAirborne(p) ? Math.sin((0.55 - p.jumpTimer) / 0.55 * Math.PI) * 22 : 0;
+    var bodyY = anchor.y - bob * scale;
+
+    // shadow
+    ctx.globalAlpha = 0.35 - (isAirborne(p) ? 0.18 : 0);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(anchor.x, anchor.y + 6 * scale, 20 * scale * (1 - bob / 60), 7 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    var flicker = isInvulnerable(p) && Math.floor(performance.now() / 90) % 2 === 0;
+    if (flicker && p.invulnTimer > 0 && p.hp > 0) ctx.globalAlpha = 0.45;
+
+    var color = p.character.color;
+    var outfitColor = skin && skin.outfitColor ? skin.outfitColor : color;
+
+    // trail glow ring if dashing
+    if (isDashing(p) || isSwiping(p)) {
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 3 * scale;
+      ctx.beginPath();
+      ctx.arc(anchor.x, bodyY, 26 * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // body
+    var grad = ctx.createRadialGradient(anchor.x, bodyY - 10 * scale, 2, anchor.x, bodyY, 26 * scale);
+    grad.addColorStop(0, p.character.accent);
+    grad.addColorStop(1, outfitColor);
+    ctx.fillStyle = grad;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18 * scale;
+    ctx.beginPath();
+    ctx.ellipse(anchor.x, bodyY, 15 * scale, 20 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // facing visor
+    var fx = anchor.x + Math.sin(p.facing) * 10 * scale;
+    var fy = bodyY - Math.cos(p.facing) * 6 * scale - 6 * scale;
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.arc(fx, fy, 3.4 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // shield ring
+    if (p.status.shieldTimer > 0) {
+      ctx.strokeStyle = '#7ad9ff';
+      ctx.lineWidth = 2.4 * scale;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.arc(anchor.x, bodyY, 24 * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // magnet aura
+    if (p.status.magnetTimer > 0) {
+      ctx.strokeStyle = '#ff7ad1';
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 2 * scale;
+      ctx.beginPath();
+      ctx.arc(anchor.x, bodyY, 55 * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  RV.Player = {
+    create: create, update: update, draw: draw,
+    applyHit: applyHit, grantPowerup: grantPowerup,
+    drainEvents: drainEvents,
+    isDashing: isDashing, isSwiping: isSwiping, isAirborne: isAirborne,
+    isInvulnerable: isInvulnerable, isFrozenImmune: isFrozenImmune,
+    MAX_HP: MAX_HP
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Enemies/Enemy.js ==== */
+/* RUSHVERSE - Enemies/Enemy.js
+   Five enemy archetypes: RUNNER, CHASER, SHOOTER, BLOCKER, BOSS.
+   Each has clear, telegraphed behavior so hits always feel fair. */
+(function (RV) {
+  'use strict';
+
+  var TYPES = {
+    runner: { hp: 1, radius: 0.5, baseSpeed: 3.6, color: '#ff6a6a', score: 60, xp: 4 },
+    chaser: { hp: 2, radius: 0.55, baseSpeed: 3.0, color: '#ff9a3c', score: 90, xp: 6 },
+    shooter: { hp: 2, radius: 0.55, baseSpeed: 0.6, color: '#c76bff', score: 100, xp: 7 },
+    blocker: { hp: 3, radius: 0.75, baseSpeed: 0, color: '#7d8fff', score: 80, xp: 6 },
+    boss: { hp: 14, radius: 1.5, baseSpeed: 1.8, color: '#ff2f5f', score: 600, xp: 40 }
+  };
+
+  var idc = 0;
+
+  function spawn(type, x, z, difficulty) {
+    var def = TYPES[type];
+    difficulty = difficulty || 1;
+    return {
+      id: ++idc,
+      type: type,
+      x: x, z: z,
+      hp: Math.round(def.hp * (1 + (difficulty - 1) * 0.35)),
+      maxHp: Math.round(def.hp * (1 + (difficulty - 1) * 0.35)),
+      radius: def.radius,
+      speed: def.baseSpeed * (1 + (difficulty - 1) * 0.22),
+      color: def.color,
+      score: def.score, xpVal: def.xp,
+      alive: true,
+      hitFlash: 0,
+      slowTimer: 0,
+      stunTimer: 0,
+      fireTimer: type === 'shooter' ? 1.4 + Math.random() : 0,
+      telegraph: 0,
+      spinPhase: Math.random() * Math.PI * 2,
+      dir: { x: 0, z: 1 }
+    };
+  }
+
+  function update(e, dt, playerX, playerZ, projectiles) {
+    e.hitFlash = Math.max(0, e.hitFlash - dt);
+    e.slowTimer = Math.max(0, e.slowTimer - dt);
+    e.stunTimer = Math.max(0, e.stunTimer - dt);
+    if (e.stunTimer > 0) return;
+    var speedMul = e.slowTimer > 0 ? 0.35 : 1;
+
+    var dx = playerX - e.x, dz = playerZ - e.z;
+    var dist = Math.hypot(dx, dz) || 1;
+
+    if (e.type === 'runner') {
+      // Charges straight in the direction it was aimed when spawned.
+      e.x += e.dir.x * e.speed * speedMul * dt;
+      e.z += e.dir.z * e.speed * speedMul * dt;
+    } else if (e.type === 'chaser') {
+      e.x += (dx / dist) * e.speed * speedMul * dt;
+      e.z += (dz / dist) * e.speed * speedMul * dt;
+    } else if (e.type === 'shooter') {
+      e.fireTimer -= dt * speedMul;
+      e.spinPhase += dt;
+      if (e.fireTimer <= 0) {
+        e.fireTimer = 2.6;
+        e.telegraph = 0.45;
+      }
+      if (e.telegraph > 0) {
+        e.telegraph -= dt;
+        if (e.telegraph <= 0 && projectiles) {
+          projectiles.push({ x: e.x, z: e.z, dx: dx / dist, dz: dz / dist, speed: 4.6, life: 3.2, radius: 0.28 });
+        }
+      }
+    } else if (e.type === 'blocker') {
+      e.spinPhase += dt;
+      // stationary, just guards its tile
+    } else if (e.type === 'boss') {
+      if (dist > 2.2) {
+        e.x += (dx / dist) * e.speed * speedMul * dt;
+        e.z += (dz / dist) * e.speed * speedMul * dt;
+      }
+      e.spinPhase += dt;
+      e.fireTimer -= dt;
+      if (e.fireTimer <= 0 && projectiles) {
+        e.fireTimer = 1.8;
+        for (var a = 0; a < 3; a++) {
+          var ang = Math.atan2(dz, dx) + (a - 1) * 0.35;
+          projectiles.push({ x: e.x, z: e.z, dx: Math.cos(ang), dz: Math.sin(ang), speed: 4, life: 3, radius: 0.3 });
+        }
+      }
+    }
+  }
+
+  function hit(e, dmg) {
+    e.hp -= dmg;
+    e.hitFlash = 0.18;
+    if (e.hp <= 0) e.alive = false;
+    return !e.alive;
+  }
+
+  function applySlow(e, dur) { e.slowTimer = Math.max(e.slowTimer, dur); }
+  function applyStun(e, dur) { e.stunTimer = Math.max(e.stunTimer, dur); }
+
+  function draw(ctx, e, project) {
+    var pos = project(e.x, e.z);
+    if (!pos || pos.cull) return;
+    var scale = pos.scale;
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + 5 * scale, 16 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    var flashColor = e.hitFlash > 0 ? '#ffffff' : e.color;
+    var size = (e.type === 'boss' ? 34 : 15) * scale;
+
+    if (e.telegraph > 0) {
+      ctx.strokeStyle = '#fff';
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(performance.now() / 40);
+      ctx.lineWidth = 2 * scale;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, size + 8 * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = flashColor;
+    ctx.shadowColor = e.color;
+    ctx.shadowBlur = 14 * scale;
+
+    if (e.type === 'blocker') {
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(e.spinPhase * 0.5);
+      ctx.fillRect(-size, -size, size * 2, size * 2);
+      ctx.restore();
+    } else if (e.type === 'shooter') {
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(e.spinPhase);
+      for (var i = 0; i < 3; i++) {
+        ctx.rotate(Math.PI * 2 / 3);
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * 0.5, size * 0.5);
+        ctx.lineTo(-size * 0.5, size * 0.5);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(pos.x, pos.y, size * 0.85, size, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    if (e.type === 'boss') {
+      var barW = 60 * scale;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(pos.x - barW / 2, pos.y - size - 16 * scale, barW, 6 * scale);
+      ctx.fillStyle = '#ff2f5f';
+      ctx.fillRect(pos.x - barW / 2, pos.y - size - 16 * scale, barW * Math.max(0, e.hp / e.maxHp), 6 * scale);
+    }
+  }
+
+  RV.Enemy = { TYPES: TYPES, spawn: spawn, update: update, hit: hit, applySlow: applySlow, applyStun: applyStun, draw: draw };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Items/Obstacles.js ==== */
+/* RUSHVERSE - Items/Obstacles.js
+   Every obstacle type from the design doc, built on four shared behaviors
+   (toggle zone, sweeping mover, orbiting spinner, falling impact) so new
+   flavors are just new TYPE_META entries. Ground hazards are jump-avoidable;
+   solid/moving hazards must be dashed or dodged around — that split is what
+   gives Jump and Dash distinct tactical uses. Every hazard telegraphs before
+   it can hurt the player. */
+(function (RV) {
+  'use strict';
+
+  var TYPE_META = {
+    laser: { behavior: 'toggle', shape: 'beam', jumpSafe: true, warn: 0.45, on: 1.0, off: 1.6, color: '#ff3bd6' },
+    electricZone: { behavior: 'toggle', shape: 'zone', jumpSafe: true, warn: 0.5, on: 1.3, off: 1.4, radius: 1.4, color: '#7fe7ff' },
+    frostTrap: { behavior: 'toggle', shape: 'zone', jumpSafe: true, warn: 0.5, on: 1.6, off: 1.3, radius: 1.2, color: '#bdfbff', slows: true },
+    lava: { behavior: 'static', shape: 'zone', jumpSafe: true, radius: 1.6, color: '#ff5a1f' },
+    sandTrap: { behavior: 'staticSlow', shape: 'zone', jumpSafe: true, radius: 1.6, color: '#ffb85c' },
+    slideFloor: { behavior: 'staticSlow', shape: 'zone', jumpSafe: true, radius: 1.5, color: '#9fd0ff' },
+    movingWall: { behavior: 'sweep', shape: 'wall', jumpSafe: false, span: 5, speed: 1.1, len: 2.6, color: '#7a3bff' },
+    door: { behavior: 'toggle', shape: 'wall', jumpSafe: false, warn: 0.5, on: 1.4, off: 1.6, len: 2.2, color: '#5c8fd6' },
+    boulder: { behavior: 'sweep', shape: 'ball', jumpSafe: false, span: 6, speed: 1.4, radius: 0.9, color: '#8a5220' },
+    spinner: { behavior: 'orbit', shape: 'ball', jumpSafe: false, orbitRadius: 2.4, orbitSpeed: 1.6, arms: 3, radius: 0.5, color: '#ff9a3c' },
+    fallingRock: { behavior: 'falling', shape: 'impact', jumpSafe: false, warn: 0.85, impact: 0.35, cooldown: 1.6, radius: 1.1, color: '#c76b3c' }
+  };
+
+  var idc = 0;
+
+  function spawn(type, arenaRadius) {
+    var meta = TYPE_META[type];
+    var o = {
+      id: ++idc, type: type, meta: meta,
+      x: 0, z: 0, phase: 'off', timer: 0.6 + Math.random() * 0.8,
+      angle: Math.random() * Math.PI * 2
+    };
+    var pos = randomPos(arenaRadius * 0.8);
+    o.x = pos.x; o.z = pos.z;
+    if (meta.behavior === 'sweep') {
+      o.axis = Math.random() < 0.5 ? 'x' : 'z';
+      o.center = pos;
+      o.t = Math.random() * Math.PI * 2;
+    }
+    if (meta.behavior === 'orbit') {
+      o.pivot = randomPos(arenaRadius * 0.5);
+    }
+    if (meta.behavior === 'falling') {
+      o.phase = 'idle';
+      o.timer = Math.random() * 1.2;
+    }
+    return o;
+  }
+
+  function randomPos(maxR) {
+    var a = Math.random() * Math.PI * 2;
+    var r = Math.random() * maxR;
+    return { x: Math.cos(a) * r, z: Math.sin(a) * r };
+  }
+
+  function update(o, dt, arenaRadius, speedMul) {
+    speedMul = speedMul || 1;
+    var m = o.meta;
+    if (m.behavior === 'toggle') {
+      o.timer -= dt;
+      if (o.timer <= 0) {
+        if (o.phase === 'off') { o.phase = 'warn'; o.timer = m.warn; }
+        else if (o.phase === 'warn') { o.phase = 'on'; o.timer = m.on; }
+        else { o.phase = 'off'; o.timer = m.off; }
+      }
+    } else if (m.behavior === 'sweep') {
+      o.t += dt * m.speed * speedMul;
+      var off = Math.sin(o.t) * m.span * 0.5;
+      if (o.axis === 'x') { o.x = o.center.x + off; o.z = o.center.z; }
+      else { o.z = o.center.z + off; o.x = o.center.x; }
+      o.x = Math.max(-arenaRadius + 0.5, Math.min(arenaRadius - 0.5, o.x));
+      o.z = Math.max(-arenaRadius + 0.5, Math.min(arenaRadius - 0.5, o.z));
+      o.phase = 'on';
+    } else if (m.behavior === 'orbit') {
+      o.angle += dt * m.orbitSpeed * speedMul;
+      o.phase = 'on';
+    } else if (m.behavior === 'falling') {
+      o.timer -= dt;
+      if (o.phase === 'idle' && o.timer <= 0) {
+        var pos = randomPos(arenaRadius * 0.75);
+        o.x = pos.x; o.z = pos.z;
+        o.phase = 'warn'; o.timer = m.warn;
+      } else if (o.phase === 'warn' && o.timer <= 0) {
+        o.phase = 'impact'; o.timer = m.impact;
+      } else if (o.phase === 'impact' && o.timer <= 0) {
+        o.phase = 'idle'; o.timer = m.cooldown + Math.random() * 1.5;
+      }
+    }
+  }
+
+  // orbit ball world positions (array, since `arms` can be >1)
+  function orbitBalls(o) {
+    var out = [];
+    for (var i = 0; i < o.meta.arms; i++) {
+      var a = o.angle + (Math.PI * 2 / o.meta.arms) * i;
+      out.push({ x: o.pivot.x + Math.cos(a) * o.meta.orbitRadius, z: o.pivot.z + Math.sin(a) * o.meta.orbitRadius });
+    }
+    return out;
+  }
+
+  function isDangerousNow(o) {
+    var m = o.meta;
+    if (m.behavior === 'static') return true;
+    if (m.behavior === 'staticSlow') return false; // never damages, only slows
+    if (m.behavior === 'toggle') return o.phase === 'on';
+    if (m.behavior === 'sweep' || m.behavior === 'orbit') return true;
+    if (m.behavior === 'falling') return o.phase === 'impact';
+    return false;
+  }
+
+  function isSlowingNow(o) {
+    var m = o.meta;
+    if (m.behavior === 'staticSlow') return true;
+    if (m.type === 'frostTrap') return o.phase === 'on';
+    return false;
+  }
+
+  function checkCollision(o, px, pz, pRadius, airborne) {
+    var m = o.meta;
+    if (m.jumpSafe && airborne) return { danger: false, slow: false };
+    var danger = isDangerousNow(o);
+    var slow = isSlowingNow(o) && !airborne;
+    if (!danger && !slow) return { danger: false, slow: false };
+
+    var hit = false;
+    if (m.shape === 'zone') {
+      hit = Math.hypot(px - o.x, pz - o.z) < (m.radius + pRadius);
+    } else if (m.shape === 'beam') {
+      // beam sweeps across the whole arena along z at o.z, half-width 0.55
+      hit = Math.abs(pz - o.z) < (0.55 + pRadius);
+    } else if (m.shape === 'wall') {
+      var half = m.len / 2;
+      if (o.axis === 'x') hit = Math.abs(pz - o.z) < (0.5 + pRadius) && Math.abs(px - o.x) < half;
+      else if (o.axis === 'z') hit = Math.abs(px - o.x) < (0.5 + pRadius) && Math.abs(pz - o.z) < half;
+      else hit = Math.hypot(px - o.x, pz - o.z) < (half + pRadius);
+    } else if (m.shape === 'ball') {
+      if (m.behavior === 'orbit') {
+        hit = orbitBalls(o).some(function (b) { return Math.hypot(px - b.x, pz - b.z) < (m.radius + pRadius); });
+      } else {
+        hit = Math.hypot(px - o.x, pz - o.z) < (m.radius + pRadius);
+      }
+    } else if (m.shape === 'impact') {
+      hit = Math.hypot(px - o.x, pz - o.z) < (m.radius + pRadius);
+    }
+    return { danger: hit && danger, slow: hit && slow };
+  }
+
+  function draw(ctx, o, project) {
+    var m = o.meta;
+    var glowColor = m.color;
+    var alphaPulse = 0.75 + 0.25 * Math.sin(performance.now() / 160);
+
+    function drawZone(x, z, r, active, warn) {
+      var pos = project(x, z);
+      if (!pos || pos.cull) return;
+      ctx.globalAlpha = warn ? 0.35 + 0.35 * alphaPulse : (active ? 0.55 : 0.22);
+      ctx.fillStyle = glowColor;
+      ctx.beginPath();
+      ctx.ellipse(pos.x, pos.y, r * 40 * pos.scale, r * 18 * pos.scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    if (m.shape === 'zone') {
+      drawZone(o.x, o.z, m.radius, o.phase === 'on' || m.behavior === 'static' || m.behavior === 'staticSlow', o.phase === 'warn');
+    } else if (m.shape === 'beam') {
+      var a = project(-9, o.z), b = project(9, o.z);
+      if (!a || !b) return;
+      ctx.strokeStyle = glowColor;
+      ctx.globalAlpha = o.phase === 'on' ? 0.9 : (o.phase === 'warn' ? 0.4 + 0.3 * alphaPulse : 0.15);
+      ctx.lineWidth = (o.phase === 'on' ? 8 : 3) * ((a.scale + b.scale) / 2);
+      ctx.shadowColor = glowColor; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    } else if (m.shape === 'wall') {
+      var half = m.len / 2;
+      var p1, p2;
+      if (o.axis === 'x') { p1 = project(o.x - half, o.z); p2 = project(o.x + half, o.z); }
+      else { p1 = project(o.x, o.z - half); p2 = project(o.x, o.z + half); }
+      if (!p1 || !p2) return;
+      var active = o.phase === 'on';
+      ctx.strokeStyle = glowColor;
+      ctx.globalAlpha = active ? 0.95 : 0.35 + 0.3 * alphaPulse;
+      ctx.lineWidth = 16 * ((p1.scale + p2.scale) / 2);
+      ctx.lineCap = 'round';
+      ctx.shadowColor = glowColor; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    } else if (m.shape === 'ball') {
+      if (m.behavior === 'orbit') {
+        orbitBalls(o).forEach(function (b) {
+          var pos = project(b.x, b.z);
+          if (!pos || pos.cull) return;
+          ctx.fillStyle = glowColor;
+          ctx.shadowColor = glowColor; ctx.shadowBlur = 12 * pos.scale;
+          ctx.beginPath(); ctx.arc(pos.x, pos.y, m.radius * 32 * pos.scale, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+        });
+        var pivotPos = project(o.pivot.x, o.pivot.z);
+        if (pivotPos && !pivotPos.cull) {
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = glowColor;
+          ctx.beginPath(); ctx.arc(pivotPos.x, pivotPos.y, 8 * pivotPos.scale, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      } else {
+        var bp = project(o.x, o.z);
+        if (!bp || bp.cull) return;
+        ctx.fillStyle = glowColor;
+        ctx.shadowColor = glowColor; ctx.shadowBlur = 10 * bp.scale;
+        ctx.beginPath(); ctx.arc(bp.x, bp.y, m.radius * 34 * bp.scale, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    } else if (m.shape === 'impact') {
+      var ip = project(o.x, o.z);
+      if (!ip || ip.cull) return;
+      if (o.phase === 'warn') {
+        ctx.globalAlpha = 0.3 + 0.4 * (1 - o.timer / m.warn);
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.ellipse(ip.x, ip.y, m.radius * 34 * ip.scale, m.radius * 15 * ip.scale, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = glowColor; ctx.lineWidth = 2; ctx.globalAlpha = 0.6; ctx.stroke();
+      } else if (o.phase === 'impact') {
+        ctx.fillStyle = glowColor;
+        ctx.shadowColor = glowColor; ctx.shadowBlur = 20 * ip.scale;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.arc(ip.x, ip.y, m.radius * 40 * ip.scale, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  RV.Obstacles = {
+    TYPE_META: TYPE_META, spawn: spawn, update: update, draw: draw,
+    checkCollision: checkCollision, isDangerousNow: isDangerousNow
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Items/Pickups.js ==== */
+/* RUSHVERSE - Items/Pickups.js
+   Coins, gems/energy, and the six power-up types. Coins/gems fly toward the
+   player when a magnet effect (ability, power-up, or the Magnet Storm event)
+   is active. */
+(function (RV) {
+  'use strict';
+
+  var POWERUP_TYPES = ['shield', 'magnet', 'speed', 'multiplier', 'freeze', 'secondChance'];
+  var POWERUP_META = {
+    shield: { color: '#7ad9ff', icon: 'S' },
+    magnet: { color: '#ff7ad1', icon: 'M' },
+    speed: { color: '#7dff5a', icon: '>' },
+    multiplier: { color: '#ffce45', icon: 'x2' },
+    freeze: { color: '#bdfbff', icon: '*' },
+    secondChance: { color: '#ff5e5e', icon: '+' }
+  };
+
+  var idc = 0;
+
+  function spawnCoin(x, z, value) {
+    return { id: ++idc, kind: 'coin', x: x, z: z, value: value || 5, bob: Math.random() * Math.PI * 2, collected: false };
+  }
+  function spawnGem(x, z) {
+    return { id: ++idc, kind: 'gem', x: x, z: z, value: 1, bob: Math.random() * Math.PI * 2, collected: false };
+  }
+  function spawnPowerup(x, z, type) {
+    return { id: ++idc, kind: 'powerup', ptype: type || POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)], x: x, z: z, bob: Math.random() * Math.PI * 2, collected: false };
+  }
+
+  function randomPos(maxR) {
+    var a = Math.random() * Math.PI * 2;
+    var r = Math.random() * maxR;
+    return { x: Math.cos(a) * r, z: Math.sin(a) * r };
+  }
+
+  function update(item, dt, playerX, playerZ, magnetActive) {
+    item.bob += dt * 3;
+    if (magnetActive) {
+      var dx = playerX - item.x, dz = playerZ - item.z;
+      var dist = Math.hypot(dx, dz);
+      if (dist > 0.1 && dist < 9) {
+        var pull = 9 * dt * (dist < 2 ? 2.2 : 1);
+        item.x += (dx / dist) * pull;
+        item.z += (dz / dist) * pull;
+      }
+    }
+  }
+
+  function checkPickup(item, playerX, playerZ, playerRadius) {
+    var r = item.kind === 'powerup' ? 0.65 : 0.5;
+    return Math.hypot(playerX - item.x, playerZ - item.z) < (r + playerRadius);
+  }
+
+  function draw(ctx, item, project) {
+    var pos = project(item.x, item.z);
+    if (!pos || pos.cull) return;
+    var bobY = Math.sin(item.bob) * 4 * pos.scale;
+    var y = pos.y - 14 * pos.scale - bobY;
+
+    if (item.kind === 'coin') {
+      ctx.fillStyle = '#ffce45';
+      ctx.shadowColor = '#ffce45'; ctx.shadowBlur = 10 * pos.scale;
+      ctx.beginPath(); ctx.arc(pos.x, y, 8 * pos.scale, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff8de';
+      ctx.font = '700 ' + Math.round(9 * pos.scale) + 'px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowBlur = 0;
+      ctx.fillText('$', pos.x, y + 1);
+    } else if (item.kind === 'gem') {
+      ctx.fillStyle = '#7ad9ff';
+      ctx.shadowColor = '#7ad9ff'; ctx.shadowBlur = 12 * pos.scale;
+      ctx.save();
+      ctx.translate(pos.x, y);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-7 * pos.scale, -7 * pos.scale, 14 * pos.scale, 14 * pos.scale);
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    } else {
+      var meta = POWERUP_META[item.ptype];
+      ctx.fillStyle = meta.color;
+      ctx.shadowColor = meta.color; ctx.shadowBlur = 14 * pos.scale;
+      ctx.beginPath(); ctx.arc(pos.x, y, 11 * pos.scale, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0a0e16';
+      ctx.font = '800 ' + Math.round(10 * pos.scale) + 'px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(meta.icon, pos.x, y + 1);
+    }
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  RV.Pickups = {
+    POWERUP_TYPES: POWERUP_TYPES, POWERUP_META: POWERUP_META,
+    spawnCoin: spawnCoin, spawnGem: spawnGem, spawnPowerup: spawnPowerup,
+    randomPos: randomPos, update: update, checkPickup: checkPickup, draw: draw
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Maps/Maps.js ==== */
+/* RUSHVERSE - Maps/Maps.js
+   Renders the arena floor/sky/boundary for the active map, using the
+   pseudo-3D camera projection so each theme (Neon City, Desert Run, Frozen
+   Lab, Sky City, Volcano Core) reads as a distinct place, not a palette
+   swap alone. Also spawns theme-appropriate ambient particles. */
+(function (RV) {
+  'use strict';
+
+  var ambientParticles = [];
+
+  function resetAmbient(mapDef, arenaRadius) {
+    ambientParticles.length = 0;
+    var count = RV.Effects.quality() === 'low' ? 10 : RV.Effects.quality() === 'medium' ? 22 : 40;
+    for (var i = 0; i < count; i++) {
+      ambientParticles.push({
+        x: (Math.random() * 2 - 1) * arenaRadius * 1.3,
+        z: (Math.random() * 2 - 1) * arenaRadius * 1.3,
+        h: Math.random() * 6,
+        speed: 0.3 + Math.random() * 0.8,
+        drift: Math.random() * Math.PI * 2,
+        size: 1.5 + Math.random() * 2.5
+      });
+    }
+  }
+
+  function updateAmbient(dt, mapDef, arenaRadius) {
+    ambientParticles.forEach(function (p) {
+      p.drift += dt * 0.2;
+      if (mapDef.id === 'desert_run') { p.x += Math.cos(p.drift) * dt * 1.4; p.z += 0.6 * dt; }
+      else if (mapDef.id === 'sky_city') { p.h += dt * 0.4; p.x += Math.sin(p.drift) * dt * 0.3; }
+      else if (mapDef.id === 'volcano_core') { p.h += dt * p.speed * 1.5; }
+      else { p.h += dt * 0.15; p.x += Math.sin(p.drift) * dt * 0.2; }
+      if (p.h > 7) p.h = 0;
+      var lim = arenaRadius * 1.3;
+      if (p.x > lim) p.x = -lim; if (p.x < -lim) p.x = lim;
+      if (p.z > lim) p.z = -lim; if (p.z < -lim) p.z = lim;
+    });
+  }
+
+  function drawSky(ctx, canvas, mapDef) {
+    var g = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.5);
+    g.addColorStop(0, mapDef.palette.sky1);
+    g.addColorStop(1, mapDef.palette.sky2);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function drawFloor(ctx, canvas, mapDef, arenaRadius, project) {
+    var horizon = RV.Camera.horizonY();
+    var ground = RV.Camera.groundY();
+    var floorGrad = ctx.createLinearGradient(0, horizon, 0, canvas.height);
+    floorGrad.addColorStop(0, mapDef.palette.floor2);
+    floorGrad.addColorStop(1, mapDef.palette.floor1);
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, horizon, canvas.width, canvas.height - horizon);
+
+    // horizon glow
+    var glow = ctx.createRadialGradient(canvas.width / 2, horizon, 5, canvas.width / 2, horizon, canvas.width * 0.6);
+    glow.addColorStop(0, mapDef.palette.ambient + 'aa');
+    glow.addColorStop(1, mapDef.palette.ambient + '00');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, horizon - canvas.height * 0.15, canvas.width, canvas.height * 0.35);
+
+    // perspective grid lines
+    ctx.strokeStyle = mapDef.palette.grid;
+    ctx.globalAlpha = 0.28;
+    ctx.lineWidth = 1;
+    var lines = 9;
+    for (var i = -lines; i <= lines; i++) {
+      var p1 = project(i * (arenaRadius / lines) * 1.4, -RV.Camera.BEHIND);
+      var p2 = project(i * (arenaRadius / lines) * 1.4, RV.Camera.AHEAD);
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+    var depthLines = 7;
+    for (var d = 0; d <= depthLines; d++) {
+      var zPos = -RV.Camera.BEHIND + (RV.Camera.AHEAD + RV.Camera.BEHIND) * (d / depthLines);
+      var pa = project(-arenaRadius * 1.4, zPos);
+      var pb = project(arenaRadius * 1.4, zPos);
+      ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBoundary(ctx, arenaRadius, project) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    var segs = 48;
+    for (var i = 0; i <= segs; i++) {
+      var a = (i / segs) * Math.PI * 2;
+      var p = project(Math.cos(a) * arenaRadius, Math.sin(a) * arenaRadius);
+      if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+
+  function drawAmbient(ctx, mapDef, project) {
+    ambientParticles.forEach(function (p) {
+      var pos = project(p.x, p.z);
+      if (!pos || pos.cull) return;
+      var y = pos.y - p.h * 20 * pos.scale;
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = mapDef.palette.glow;
+      ctx.beginPath();
+      ctx.arc(pos.x, y, p.size * pos.scale, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function render(ctx, canvas, mapDef, arenaRadius, project, blackout) {
+    drawSky(ctx, canvas, mapDef);
+    drawFloor(ctx, canvas, mapDef, arenaRadius, project);
+    drawBoundary(ctx, arenaRadius, project);
+    drawAmbient(ctx, mapDef, project);
+    if (blackout) {
+      var vg = ctx.createRadialGradient(canvas.width / 2, canvas.height * 0.6, canvas.height * 0.12, canvas.width / 2, canvas.height * 0.6, canvas.height * 0.62);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.93)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  RV.Maps = { resetAmbient: resetAmbient, updateAmbient: updateAmbient, render: render };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Game/Combo.js ==== */
+/* RUSHVERSE - Game/Combo.js
+   Combo meter: coins, dodges, enemy kills, ability use and well-timed dashes
+   all feed it. It decays if the player goes quiet, and drops hard on a hit.
+   Score multiplier scales with combo, so keeping it alive is the whole game. */
+(function (RV) {
+  'use strict';
+
+  var DECAY_WINDOW = 3.0;
+  var MILESTONES = [2, 5, 10, 25, 50, 75, 100];
+
+  var WEIGHTS = { coin: 1, dodge: 1, kill: 2, ability: 1, perfectDash: 2 };
+
+  function create() {
+    return { count: 0, timer: 0, best: 0, lastMilestoneHit: 0 };
+  }
+
+  function register(state, kind) {
+    var w = WEIGHTS[kind] || 1;
+    state.count += w;
+    state.timer = DECAY_WINDOW;
+    if (state.count > state.best) state.best = state.count;
+    var hitMilestone = null;
+    MILESTONES.forEach(function (m) {
+      if (state.count >= m && state.lastMilestoneHit < m) {
+        state.lastMilestoneHit = m;
+        hitMilestone = m;
+      }
+    });
+    return hitMilestone;
+  }
+
+  function onHit(state) {
+    state.count = Math.floor(state.count * 0.35);
+    state.lastMilestoneHit = Math.min(state.lastMilestoneHit, state.count);
+    state.timer = DECAY_WINDOW * 0.6;
+  }
+
+  function update(state, dt) {
+    if (state.count <= 0) return;
+    state.timer -= dt;
+    if (state.timer <= 0) {
+      state.count = 0;
+      state.lastMilestoneHit = 0;
+    }
+  }
+
+  function multiplier(state) {
+    return Math.min(6, 1 + Math.floor(state.count / 5) * 0.5);
+  }
+
+  RV.Combo = { create: create, register: register, onHit: onHit, update: update, multiplier: multiplier, MILESTONES: MILESTONES };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Game/Events.js ==== */
+/* RUSHVERSE - Game/Events.js
+   Random arena events that fire every 18-30s of survival, each with a
+   banner announcement, a duration, and a concrete gameplay effect applied
+   by GameLoop (which reads state.active). Keeps every run feeling different. */
+(function (RV) {
+  'use strict';
+
+  var DEFS = {
+    coinRain: { label: 'COIN RAIN', duration: 6, color: '#ffce45' },
+    speedMode: { label: 'SPEED MODE', duration: 8, color: '#ff6a6a' },
+    blackout: { label: 'BLACKOUT', duration: 5, color: '#7d8fff' },
+    giantEnemy: { label: 'GIANT ENEMY', duration: 0, color: '#ff2f5f' },
+    doubleScore: { label: 'DOUBLE SCORE', duration: 10, color: '#7dff5a' },
+    magnetStorm: { label: 'MAGNET STORM', duration: 7, color: '#ff7ad1' }
+  };
+  var KEYS = Object.keys(DEFS);
+
+  function create() {
+    return { next: 16 + Math.random() * 8, active: null, activeTimer: 0, banner: null, bannerTimer: 0 };
+  }
+
+  function update(state, dt, elapsed, onTrigger) {
+    if (state.active) {
+      state.activeTimer -= dt;
+      if (state.activeTimer <= 0) {
+        onTrigger && onTrigger('end', state.active);
+        state.active = null;
+      }
+    } else {
+      state.next -= dt;
+      if (state.next <= 0 && elapsed > 8) {
+        var key = KEYS[Math.floor(Math.random() * KEYS.length)];
+        var def = DEFS[key];
+        state.active = key;
+        state.activeTimer = def.duration || 5;
+        state.banner = def.label;
+        state.bannerTimer = 2.4;
+        state.next = 20 + Math.random() * 12;
+        onTrigger && onTrigger('start', key);
+      }
+    }
+    if (state.bannerTimer > 0) {
+      state.bannerTimer -= dt;
+      if (state.bannerTimer <= 0) state.banner = null;
+    }
+  }
+
+  RV.Events = { DEFS: DEFS, create: create, update: update };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Game/GameLoop.js ==== */
+/* RUSHVERSE - Game/GameLoop.js
+   The match orchestrator: owns the canvas render loop, spawns obstacles /
+   enemies / pickups, resolves collisions, drives the combo+score systems,
+   runs ability effects, ramps difficulty over time, and reports back to the
+   UI layer (HUD updates, game-over summary) via callbacks. */
+(function (RV) {
+  'use strict';
+
+  var ARENA_RADIUS = 9;
+  var COIN_SCORE = 4, GEM_SCORE = 20, SURVIVAL_TICK_SCORE = 8;
+  var MAX_COINS_ON_FIELD = 9, MAX_POWERUPS_ON_FIELD = 2;
+
+  var canvas, ctx;
+  var running = false, paused = false;
+  var rafId = null, lastTime = 0;
+
+  var match = null; // full mutable run state
+  var callbacks = {};
+
+  function on(name, fn) { callbacks[name] = fn; }
+  function fire(name, payload) { if (callbacks[name]) callbacks[name](payload); }
+
+  function init(canvasEl) {
+    canvas = canvasEl;
+    ctx = canvas.getContext('2d');
+    window.addEventListener('resize', handleResize);
+    handleResize();
+  }
+
+  function handleResize() {
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    RV.Camera.resize(w, h);
+  }
+
+  function project(x, z) { return RV.Camera.project(x, z); }
+
+  function difficultyAt(elapsed) { return 1 + elapsed / 42; }
+
+  function start(opts) {
+    var characterDef = RV.Data.getCharacter(opts.characterId) || RV.Data.CHARACTERS[0];
+    var mapDef = RV.Data.getMap(opts.mapId) || RV.Data.MAPS[0];
+    var skinCfg = opts.skin || {};
+
+    match = {
+      map: mapDef, character: characterDef, skin: skinCfg,
+      player: RV.Player.create(characterDef),
+      obstacles: [], enemies: [], pickups: [], projectiles: [],
+      combo: RV.Combo.create(),
+      events: RV.Events.create(),
+      elapsed: 0, score: 0, displayScore: 0,
+      coinsCollected: 0, gemsCollected: 0, abilityUses: 0, enemiesDefeated: 0,
+      enemySpawnTimer: 2, obstacleSpawnTimer: 1, powerupSpawnTimer: 6, coinSpawnTimer: 0,
+      globalSlowTimer: 0, bossSpawnedForEvent: false,
+      floaterCombo: null,
+      ended: false
+    };
+    RV.Maps.resetAmbient(mapDef, ARENA_RADIUS);
+    RV.Effects.clear();
+    RV.Audio.playMusic(mapDef.musicKey, function () { return Math.min(1, match.elapsed / 90); });
+
+    for (var i = 0; i < 6; i++) spawnCoin();
+
+    running = true; paused = false;
+    lastTime = performance.now();
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function stop() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    RV.Audio.stopMusic();
+  }
+  function pause() { paused = true; }
+  function resume() { paused = false; lastTime = performance.now(); }
+  function isPaused() { return paused; }
+
+  function spawnCoin() {
+    if (match.pickups.filter(function (p) { return p.kind === 'coin'; }).length >= MAX_COINS_ON_FIELD) return;
+    var pos = RV.Pickups.randomPos(ARENA_RADIUS * 0.85);
+    match.pickups.push(RV.Pickups.spawnCoin(pos.x, pos.z, Math.random() < 0.12 ? 15 : 5));
+  }
+  function spawnGem() {
+    var pos = RV.Pickups.randomPos(ARENA_RADIUS * 0.8);
+    match.pickups.push(RV.Pickups.spawnGem(pos.x, pos.z));
+  }
+  function spawnPowerupItem() {
+    if (match.pickups.filter(function (p) { return p.kind === 'powerup'; }).length >= MAX_POWERUPS_ON_FIELD) return;
+    var pos = RV.Pickups.randomPos(ARENA_RADIUS * 0.75);
+    match.pickups.push(RV.Pickups.spawnPowerup(pos.x, pos.z));
+  }
+
+  function spawnObstacle() {
+    var pool = match.map.obstaclePool;
+    var type = pool[Math.floor(Math.random() * pool.length)];
+    var maxObstacles = Math.min(3 + Math.floor(match.elapsed / 22), 8);
+    if (match.obstacles.length >= maxObstacles) return;
+    match.obstacles.push(RV.Obstacles.spawn(type, ARENA_RADIUS));
+  }
+
+  function pickEnemyType(difficulty) {
+    var roll = Math.random();
+    if (difficulty > 2.6 && roll < 0.08) return 'boss';
+    if (roll < 0.32) return 'runner';
+    if (roll < 0.58) return 'chaser';
+    if (roll < 0.8) return 'shooter';
+    return 'blocker';
+  }
+
+  function spawnEnemy(forceType) {
+    var difficulty = difficultyAt(match.elapsed);
+    var maxEnemies = Math.min(2 + Math.floor(match.elapsed / 20), 7);
+    if (!forceType && match.enemies.length >= maxEnemies) return;
+    var type = forceType || pickEnemyType(difficulty);
+    var pos = RV.Pickups.randomPos(ARENA_RADIUS * 0.9);
+    // keep spawn away from the player
+    var tries = 0;
+    while (Math.hypot(pos.x - match.player.x, pos.z - match.player.z) < 3 && tries < 6) {
+      pos = RV.Pickups.randomPos(ARENA_RADIUS * 0.9); tries++;
+    }
+    var e = RV.Enemy.spawn(type, pos.x, pos.z, difficulty);
+    if (type === 'runner') {
+      var dx = match.player.x - pos.x, dz = match.player.z - pos.z;
+      var len = Math.hypot(dx, dz) || 1;
+      e.dir = { x: dx / len, z: dz / len };
+    }
+    match.enemies.push(e);
+  }
+
+  // ---------- Ability effects ----------
+  function applyAbilityEffect(ability) {
+    var p = match.player;
+    match.abilityUses++;
+    RV.Progress.updateMissionStat('abilityUsesThisPeriod', 1, 'add');
+    RV.Audio.sfx.ability();
+    RV.Effects.shake(4);
+    RV.Effects.burst(p.x, p.z, p.character.color, { count: 22, speed: 130, life: 0.5 });
+    registerCombo('ability');
+
+    switch (ability.id) {
+      case 'surge':
+        p.status.speedTimer = Math.max(p.status.speedTimer, ability.duration / 1000);
+        break;
+      case 'blink':
+        break; // handled entirely by Player dash mechanics
+      case 'shockwave':
+        match.enemies.forEach(function (e) {
+          var d = Math.hypot(e.x - p.x, e.z - p.z);
+          if (d < 3.6) {
+            RV.Enemy.applyStun(e, 1.8);
+            var killed = RV.Enemy.hit(e, d < 2 ? 5 : 2);
+            if (killed) onEnemyDefeated(e);
+          }
+        });
+        break;
+      case 'frostfield':
+        match.globalSlowTimer = ability.duration / 1000;
+        match.enemies.forEach(function (e) { RV.Enemy.applySlow(e, ability.duration / 1000); });
+        break;
+      case 'magnetpulse':
+        p.status.magnetTimer = Math.max(p.status.magnetTimer, ability.duration / 1000);
+        break;
+      case 'phase':
+        break; // handled by isInvulnerable()
+    }
+  }
+
+  function onEnemyDefeated(e) {
+    match.enemiesDefeated++;
+    RV.Progress.updateMissionStat('enemiesThisPeriod', 1, 'add');
+    var mult = comboScoreMultiplier();
+    addScore(e.score * mult);
+    RV.Effects.burst(e.x, e.z, e.color, { count: 16, speed: 140, life: 0.45 });
+    RV.Effects.floatText(e.x, e.z, '+' + Math.round(e.score * mult), e.color);
+    RV.Audio.sfx.enemyDefeat();
+    registerCombo('kill');
+  }
+
+  function comboScoreMultiplier() {
+    var m = RV.Combo.multiplier(match.combo);
+    if (match.events.active === 'doubleScore') m *= 2;
+    return m;
+  }
+
+  function registerCombo(kind) {
+    var milestone = RV.Combo.register(match.combo, kind);
+    if (milestone) {
+      RV.Audio.sfx.combo(milestone);
+      RV.Effects.floatText(match.player.x, match.player.z - 0.6, 'COMBO x' + milestone + '!', '#ffce45', { size: 24, life: 1.1 });
+      addScore(milestone * 15);
+      fire('combo', milestone);
+    }
+  }
+
+  function addScore(amount) {
+    match.score += amount;
+  }
+
+  // ---------- Frame loop ----------
+  function loop(now) {
+    if (!running) return;
+    var dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    if (!paused) update(dt);
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    match.elapsed += dt;
+    match.globalSlowTimer = Math.max(0, match.globalSlowTimer - dt);
+    var difficulty = difficultyAt(match.elapsed);
+    var input = RV.Controls.consumeFrame();
+    var p = match.player;
+
+    RV.Player.update(p, dt, input, ARENA_RADIUS);
+    RV.Camera.follow(p.x, p.z);
+    RV.Controls.setAbilityCooldownDisplay(1 - p.abilityCooldown / (p.character.ability.cooldown / 1000));
+
+    RV.Player.drainEvents(p).forEach(function (ev) {
+      if (ev.type === 'dash') { RV.Audio.sfx.dash(); RV.Effects.burst(p.x, p.z, p.character.color, { count: 8, speed: 60, life: 0.3 }); checkPerfectDash(); }
+      else if (ev.type === 'swipe') { RV.Audio.sfx.dash(); registerCombo('dodge'); }
+      else if (ev.type === 'jump') { RV.Audio.sfx.jump(); }
+      else if (ev.type === 'ability') { applyAbilityEffect(ev.data.ability); }
+      else if (ev.type === 'hit') { RV.Audio.sfx.hit(); RV.Controls.vibrate(60); RV.Effects.shake(9); RV.Effects.burst(p.x, p.z, '#ff3860', { count: 14, speed: 110, life: 0.4 }); RV.Combo.onHit(match.combo); }
+      else if (ev.type === 'secondChance') { RV.Effects.floatText(p.x, p.z, 'SECOND CHANCE!', '#ff5e5e', { size: 22, life: 1.2 }); }
+      else if (ev.type === 'died') { endMatch(); }
+    });
+
+    // trail particles while dashing
+    if (RV.Player.isDashing(p) && Math.random() < 0.6) {
+      RV.Effects.burst(p.x, p.z, p.character.color, { count: 2, speed: 20, life: 0.35, gravity: 0 });
+    }
+
+    updateObstacles(dt, difficulty);
+    updateEnemies(dt);
+    updateProjectiles(dt);
+    updatePickups(dt);
+    resolveCollisions(dt);
+
+    RV.Combo.update(match.combo, dt);
+    RV.Events.update(match.events, dt, match.elapsed, onEventTrigger);
+    RV.Maps.updateAmbient(dt, match.map, ARENA_RADIUS);
+    RV.Effects.update(dt);
+
+    // spawning
+    match.obstacleSpawnTimer -= dt;
+    if (match.obstacleSpawnTimer <= 0) { spawnObstacle(); match.obstacleSpawnTimer = Math.max(2.2, 5.5 - difficulty * 0.5); }
+    var enemyInterval = match.events.active === 'speedMode' ? 1.4 : Math.max(1.6, 4.4 - difficulty * 0.45);
+    match.enemySpawnTimer -= dt;
+    if (match.enemySpawnTimer <= 0) { spawnEnemy(); match.enemySpawnTimer = enemyInterval; }
+    match.coinSpawnTimer -= dt;
+    if (match.coinSpawnTimer <= 0) { spawnCoin(); match.coinSpawnTimer = match.events.active === 'coinRain' ? 0.15 : 1.6; }
+    match.powerupSpawnTimer -= dt;
+    if (match.powerupSpawnTimer <= 0) { spawnPowerupItem(); match.powerupSpawnTimer = 10 + Math.random() * 6; }
+
+    // survival tick score
+    match._tickAccum = (match._tickAccum || 0) + dt;
+    if (match._tickAccum >= 1) {
+      match._tickAccum -= 1;
+      addScore(SURVIVAL_TICK_SCORE * comboScoreMultiplier() * 0.4 * difficulty);
+    }
+
+    // display score animates toward real score
+    match.displayScore += (match.score - match.displayScore) * Math.min(1, dt * 6);
+
+    RV.Progress.updateMissionStat('bestSurvivalThisPeriod', match.elapsed, 'max');
+    RV.Progress.updateMissionStat('bestComboThisPeriod', match.combo.best, 'max');
+    RV.Progress.updateMissionStat('bestScoreThisPeriod', match.score, 'max');
+
+    fire('hud', getHudState());
+  }
+
+  function checkPerfectDash() {
+    var p = match.player;
+    var wasNearHazard = match.obstacles.some(function (o) {
+      var res = RV.Obstacles.checkCollision(o, p.x, p.z, p.radius + 1.1, false);
+      return res.danger;
+    });
+    if (wasNearHazard) {
+      addScore(120 * comboScoreMultiplier());
+      registerCombo('perfectDash');
+      RV.Effects.floatText(p.x, p.z, 'PERFECT!', '#7dff5a', { size: 18 });
+    }
+  }
+
+  function onEventTrigger(phase, key) {
+    if (phase === 'start') {
+      RV.Audio.sfx.eventAlert();
+      fire('eventBanner', RV.Events.DEFS[key].label);
+      if (key === 'giantEnemy' && !match.enemies.some(function (e) { return e.type === 'boss'; })) {
+        spawnEnemy('boss');
+      }
+      if (key === 'coinRain') {
+        for (var i = 0; i < 4; i++) spawnCoin();
+      }
+    }
+  }
+
+  function updateObstacles(dt, difficulty) {
+    var speedMul = match.globalSlowTimer > 0 ? 0.4 : (match.events.active === 'speedMode' ? 1.5 : 1) * Math.min(1.6, 0.9 + difficulty * 0.12);
+    match.obstacles.forEach(function (o) { RV.Obstacles.update(o, dt, ARENA_RADIUS, speedMul); });
+  }
+
+  function updateEnemies(dt) {
+    var p = match.player;
+    for (var i = match.enemies.length - 1; i >= 0; i--) {
+      var e = match.enemies[i];
+      if (match.globalSlowTimer > 0) RV.Enemy.applySlow(e, 0.1);
+      RV.Enemy.update(e, dt, p.x, p.z, match.projectiles);
+      if (!e.alive) match.enemies.splice(i, 1);
+    }
+  }
+
+  function updateProjectiles(dt) {
+    var p = match.player;
+    for (var i = match.projectiles.length - 1; i >= 0; i--) {
+      var pr = match.projectiles[i];
+      pr.x += pr.dx * pr.speed * dt;
+      pr.z += pr.dz * pr.speed * dt;
+      pr.life -= dt;
+      var dead = pr.life <= 0 || Math.hypot(pr.x, pr.z) > ARENA_RADIUS * 1.4;
+      if (!dead && !RV.Player.isInvulnerable(p) && Math.hypot(pr.x - p.x, pr.z - p.z) < pr.radius + p.radius) {
+        RV.Player.applyHit(p);
+        dead = true;
+      }
+      if (dead) match.projectiles.splice(i, 1);
+    }
+  }
+
+  function updatePickups(dt) {
+    var p = match.player;
+    var magnetActive = p.status.magnetTimer > 0 || match.events.active === 'magnetStorm';
+    for (var i = match.pickups.length - 1; i >= 0; i--) {
+      var item = match.pickups[i];
+      RV.Pickups.update(item, dt, p.x, p.z, magnetActive);
+      if (RV.Pickups.checkPickup(item, p.x, p.z, p.radius)) {
+        collectPickup(item);
+        match.pickups.splice(i, 1);
+      }
+    }
+  }
+
+  function collectPickup(item) {
+    var mult = comboScoreMultiplier();
+    if (item.kind === 'coin') {
+      RV.Progress.addCoins(item.value);
+      match.coinsCollected += item.value;
+      RV.Progress.updateMissionStat('coinsThisPeriod', item.value, 'add');
+      addScore(COIN_SCORE * mult);
+      RV.Audio.sfx.coin();
+      RV.Effects.floatText(item.x, item.z, '+' + item.value, '#ffce45');
+      registerCombo('coin');
+    } else if (item.kind === 'gem') {
+      RV.Progress.addGems(item.value);
+      match.gemsCollected += item.value;
+      addScore(GEM_SCORE * mult);
+      RV.Audio.sfx.gem();
+      RV.Effects.floatText(item.x, item.z, '+' + item.value + ' GEM', '#7ad9ff');
+    } else {
+      RV.Player.grantPowerup(match.player, item.ptype);
+      RV.Audio.sfx.powerup();
+      RV.Effects.floatText(item.x, item.z, RV.Pickups.POWERUP_META[item.ptype].icon.toUpperCase(), RV.Pickups.POWERUP_META[item.ptype].color, { size: 20 });
+      RV.Effects.burst(item.x, item.z, RV.Pickups.POWERUP_META[item.ptype].color, { count: 18 });
+    }
+  }
+
+  function resolveCollisions(dt) {
+    var p = match.player;
+    var invuln = RV.Player.isInvulnerable(p);
+    var wasDashing = RV.Player.isDashing(p) || RV.Player.isSwiping(p);
+    var anySlow = false;
+
+    match.obstacles.forEach(function (o) {
+      var res = RV.Obstacles.checkCollision(o, p.x, p.z, p.radius, RV.Player.isAirborne(p));
+      if (res.slow) anySlow = true;
+      if (res.danger && !invuln) {
+        RV.Player.applyHit(p);
+      } else if (res.danger && wasDashing) {
+        // dashed straight through danger: rewarded in checkPerfectDash on dash-start,
+        // but also reward continuous pass-through for swipe dodges mid-hazard.
+      }
+    });
+    p.status.slowedByField = anySlow;
+    if (anySlow) p.status.slowedTimer = Math.max(p.status.slowedTimer, 0.15);
+
+    if (!invuln) {
+      match.enemies.forEach(function (e) {
+        var d = Math.hypot(e.x - p.x, e.z - p.z);
+        if (d < e.radius + p.radius) RV.Player.applyHit(p);
+      });
+    }
+
+    if (RV.Player.isDashing(p)) {
+      match.enemies.forEach(function (e) {
+        var d = Math.hypot(e.x - p.x, e.z - p.z);
+        if (d < e.radius + p.radius + 0.3 && e.type !== 'boss') {
+          var killed = RV.Enemy.hit(e, 1);
+          if (killed) onEnemyDefeated(e);
+        }
+      });
+    }
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    if (!match) return;
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    var shakeOff = RV.Effects.getShakeOffset();
+    ctx.save();
+    ctx.translate(shakeOff.x, shakeOff.y);
+
+    RV.Maps.render(ctx, { width: w, height: h }, match.map, ARENA_RADIUS, project, match.events.active === 'blackout');
+
+    var drawables = [];
+    match.obstacles.forEach(function (o) { drawables.push({ z: o.z, fn: function () { RV.Obstacles.draw(ctx, o, project); } }); });
+    match.pickups.forEach(function (item) { drawables.push({ z: item.z, fn: function () { RV.Pickups.draw(ctx, item, project); } }); });
+    match.enemies.forEach(function (e) { drawables.push({ z: e.z, fn: function () { RV.Enemy.draw(ctx, e, project); } }); });
+    match.projectiles.forEach(function (pr) { drawables.push({ z: pr.z, fn: function () {
+      var pos = project(pr.x, pr.z);
+      if (!pos || pos.cull) return;
+      ctx.fillStyle = '#ffdd66'; ctx.shadowColor = '#ffdd66'; ctx.shadowBlur = 8 * pos.scale;
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 5 * pos.scale, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } }); });
+    drawables.push({ z: match.player.z, fn: function () { RV.Player.draw(ctx, match.player, project, match.skin); } });
+    drawables.sort(function (a, b) { return a.z - b.z; });
+    drawables.forEach(function (d) { d.fn(); });
+
+    RV.Effects.drawWorldParticles(ctx, project);
+    RV.Effects.drawScreenFloaters(ctx, project);
+
+    ctx.restore();
+  }
+
+  function getHudState() {
+    var p = match.player;
+    return {
+      score: Math.round(match.displayScore),
+      combo: match.combo.count,
+      hp: p.hp, maxHp: p.maxHp,
+      abilityReady: p.abilityCooldown <= 0,
+      abilityPct: 1 - p.abilityCooldown / (p.character.ability.cooldown / 1000),
+      elapsed: match.elapsed,
+      eventBanner: match.events.banner,
+      coins: match.coinsCollected,
+      shieldActive: p.status.shieldTimer > 0,
+      speedActive: p.status.speedTimer > 0,
+      magnetActive: p.status.magnetTimer > 0,
+      multiplierActive: p.status.multiplierTimer > 0
+    };
+  }
+
+  function endMatch() {
+    if (match.ended) return;
+    match.ended = true;
+    stop();
+    var save = RV.Save.get();
+    var survivalMs = match.elapsed * 1000;
+    var isNewBest = match.score > save.bestScore;
+
+    save.gamesPlayed += 1;
+    save.bestScore = Math.max(save.bestScore, Math.round(match.score));
+    save.bestCombo = Math.max(save.bestCombo, match.combo.best);
+    save.bestSurvivalMs = Math.max(save.bestSurvivalMs, survivalMs);
+    save.totalSurvivalMs += survivalMs;
+    save.abilityUses += match.abilityUses;
+    if (!match.player.tookDamageThisRun) save.damagelessWins += 1;
+    RV.Save.save();
+
+    RV.Progress.updateMissionStat('matchesThisPeriod', 1, 'add');
+    RV.Progress.updateMissionStat('scoreSumThisPeriod', Math.round(match.score), 'add');
+    RV.Progress.checkAchievements();
+    RV.Progress.checkCharacterUnlocks();
+    RV.Progress.checkMapUnlocks();
+
+    var xpEarned = Math.round(match.score / 12 + match.elapsed * 2 + match.coinsCollected * 0.3);
+    var levelUps = RV.Progress.addXP(xpEarned);
+
+    if (isNewBest) RV.Audio.sfx.highScore(); else RV.Audio.sfx.gameOver();
+
+    fire('gameover', {
+      score: Math.round(match.score),
+      bestScore: save.bestScore,
+      isNewBest: isNewBest,
+      coins: match.coinsCollected,
+      gems: match.gemsCollected,
+      xp: xpEarned,
+      combo: match.combo.best,
+      survivalMs: survivalMs,
+      levelUps: levelUps
+    });
+  }
+
+  RV.GameLoop = {
+    init: init, start: start, stop: stop, pause: pause, resume: resume, isPaused: isPaused,
+    on: on, ARENA_RADIUS: ARENA_RADIUS,
+    getMatch: function () { return match; }
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/UIManager.js ==== */
+/* RUSHVERSE - UI/UIManager.js
+   Screen router + shared chrome (currency/level header), toast/modal
+   helpers, and small format utilities every screen module reuses. */
+(function (RV) {
+  'use strict';
+
+  var screens = {};
+  var current = null;
+  var root, headerEl;
+
+  function registerScreen(name, api) { screens[name] = api; }
+
+  function init(rootEl) {
+    root = rootEl;
+    headerEl = document.getElementById('topHeader');
+    renderHeader();
+    RV.Progress.on('levelup', renderHeader);
+  }
+
+  function show(name, opts) {
+    Object.keys(screens).forEach(function (key) {
+      var el = screens[key].el;
+      if (!el) return;
+      el.classList.toggle('active', key === name);
+    });
+    if (screens[name] && screens[name].onShow) screens[name].onShow(opts);
+    current = name;
+    var isGameplay = (name === 'game');
+    headerEl.classList.toggle('hidden', isGameplay || name === 'tutorial');
+    document.getElementById('bottomNav').classList.toggle('hidden', isGameplay || name === 'tutorial');
+    if (!isGameplay) renderHeader();
+  }
+
+  function getCurrent() { return current; }
+
+  function renderHeader() {
+    var s = RV.Save.get();
+    var prog = RV.Progress.xpProgress();
+    headerEl.innerHTML =
+      '<div class="curr-pill coin-pill"><span class="curr-icon">&#9679;</span>' + fmt(s.coins) + '</div>' +
+      '<div class="curr-pill gem-pill"><span class="curr-icon">&#9670;</span>' + fmt(s.gems) + '</div>' +
+      '<div class="level-block">' +
+        '<div class="level-badge">LV ' + prog.level + '</div>' +
+        '<div class="xp-bar"><div class="xp-fill" style="width:' + Math.round(prog.pct * 100) + '%"></div></div>' +
+      '</div>';
+  }
+
+  function fmt(n) {
+    n = Math.round(n);
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 10000) return Math.round(n / 1000) + 'K';
+    if (n >= 1000) return n.toLocaleString();
+    return String(n);
+  }
+
+  function fmtTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function rarityColor(r) { return RV.Data.RARITY_COLOR[r] || '#9aa5b1'; }
+
+  var toastQueue = [];
+  var toastShowing = false;
+  function toast(text, color) {
+    toastQueue.push({ text: text, color: color || '#fff' });
+    if (!toastShowing) showNextToast();
+  }
+  function showNextToast() {
+    var t = toastQueue.shift();
+    if (!t) { toastShowing = false; return; }
+    toastShowing = true;
+    var el = document.getElementById('toastLayer');
+    var node = document.createElement('div');
+    node.className = 'toast';
+    node.style.borderColor = t.color;
+    node.textContent = t.text;
+    el.appendChild(node);
+    requestAnimationFrame(function () { node.classList.add('show'); });
+    setTimeout(function () {
+      node.classList.remove('show');
+      setTimeout(function () { node.remove(); showNextToast(); }, 250);
+    }, 1900);
+  }
+
+  function modal(innerHtml, opts) {
+    opts = opts || {};
+    var layer = document.getElementById('modalLayer');
+    layer.innerHTML = '<div class="modal-backdrop"><div class="modal-card">' + innerHtml + '</div></div>';
+    layer.classList.add('active');
+    var backdrop = layer.querySelector('.modal-backdrop');
+    requestAnimationFrame(function () { backdrop.classList.add('show'); });
+    if (opts.dismissible !== false) {
+      backdrop.addEventListener('click', function (e) { if (e.target === backdrop) closeModal(); });
+    }
+    return layer.querySelector('.modal-card');
+  }
+  function closeModal() {
+    var layer = document.getElementById('modalLayer');
+    var backdrop = layer.querySelector('.modal-backdrop');
+    if (!backdrop) return;
+    backdrop.classList.remove('show');
+    setTimeout(function () { layer.classList.remove('active'); layer.innerHTML = ''; }, 220);
+  }
+
+  RV.UI = {
+    registerScreen: registerScreen, init: init, show: show, getCurrent: getCurrent,
+    renderHeader: renderHeader, fmt: fmt, fmtTime: fmtTime, rarityColor: rarityColor,
+    toast: toast, modal: modal, closeModal: closeModal
+  };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/HomeScreen.js ==== */
+/* RUSHVERSE - UI/HomeScreen.js
+   Title screen: character + map picker (quick-swap arrows, no heavy menu)
+   and the PLAY button, so a run starts in seconds. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var charIndex = 0, mapIndex = 0;
+
+  function ownedCharacters() {
+    var s = RV.Save.get();
+    return RV.Data.CHARACTERS.filter(function (c) { return s.characters.owned.indexOf(c.id) !== -1; });
+  }
+  function unlockedMaps() {
+    var s = RV.Save.get();
+    return RV.Data.MAPS.filter(function (m) { return s.maps.unlocked.indexOf(m.id) !== -1; });
+  }
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen home-screen';
+    el.innerHTML =
+      '<div class="home-glow"></div>' +
+      '<div class="logo-wrap">' +
+        '<div class="logo-title">RUSH<span class="logo-accent">VERSE</span></div>' +
+        '<div class="logo-sub">ARENA ACTION</div>' +
+      '</div>' +
+      '<div class="picker-row" id="charPicker">' +
+        '<button class="picker-arrow" data-dir="-1" data-target="char">&#10094;</button>' +
+        '<div class="picker-card" id="charCard"></div>' +
+        '<button class="picker-arrow" data-dir="1" data-target="char">&#10095;</button>' +
+      '</div>' +
+      '<div class="picker-row map-row" id="mapPicker">' +
+        '<button class="picker-arrow" data-dir="-1" data-target="map">&#10094;</button>' +
+        '<div class="picker-card map-card" id="mapCard"></div>' +
+        '<button class="picker-arrow" data-dir="1" data-target="map">&#10095;</button>' +
+      '</div>' +
+      '<button class="play-btn" id="playBtn"><span>PLAY</span></button>' +
+      '<div class="best-score-line" id="bestScoreLine"></div>';
+    container.appendChild(el);
+
+    el.querySelectorAll('.picker-arrow').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        RV.Audio.resume(); RV.Audio.sfx.click();
+        var dir = parseInt(btn.dataset.dir, 10);
+        if (btn.dataset.target === 'char') {
+          var chars = ownedCharacters();
+          charIndex = (charIndex + dir + chars.length) % chars.length;
+          equipCharacter(chars[charIndex].id);
+        } else {
+          var maps = unlockedMaps();
+          mapIndex = (mapIndex + dir + maps.length) % maps.length;
+        }
+        renderCards();
+      });
+    });
+
+    el.querySelector('#playBtn').addEventListener('click', function () {
+      RV.Audio.resume(); RV.Audio.sfx.click();
+      var s = RV.Save.get();
+      var maps = unlockedMaps();
+      var map = maps[mapIndex] || maps[0];
+      if (!s.tutorialDone) {
+        RV.UI.show('tutorial', { onDone: function () { launchMatch(s.characters.equipped, map.id); } });
+      } else {
+        launchMatch(s.characters.equipped, map.id);
+      }
+    });
+
+    return { el: el, onShow: onShow };
+  }
+
+  function equipCharacter(id) {
+    var s = RV.Save.get();
+    s.characters.equipped = id;
+    RV.Save.save();
+  }
+
+  function launchMatch(characterId, mapId) {
+    var s = RV.Save.get();
+    var skin = {
+      outfitColor: (RV.Data.getShopItem(s.skins.equipped.outfit) || {}).color
+    };
+    RV.UI.show('game');
+    RV.HUD.startMatch(characterId, mapId, skin);
+  }
+
+  function renderCards() {
+    var chars = ownedCharacters();
+    var maps = unlockedMaps();
+    var s = RV.Save.get();
+    var equippedIdx = chars.findIndex(function (c) { return c.id === s.characters.equipped; });
+    if (equippedIdx !== -1) charIndex = equippedIdx;
+    var c = chars[charIndex] || chars[0];
+    var m = maps[mapIndex] || maps[0];
+
+    document.getElementById('charCard').innerHTML =
+      '<div class="char-avatar" style="background:radial-gradient(circle at 35% 30%,' + c.accent + ',' + c.color + ')"></div>' +
+      '<div class="picker-name">' + c.name + '</div>' +
+      '<div class="picker-sub rarity-' + c.rarity + '">' + c.rarity.toUpperCase() + '</div>' +
+      '<div class="picker-desc">' + c.ability.name + ' — ' + c.ability.desc + '</div>';
+
+    document.getElementById('mapCard').innerHTML =
+      '<div class="map-avatar" style="background:linear-gradient(160deg,' + m.palette.sky2 + ',' + m.palette.floor1 + ')">' +
+        '<div class="map-avatar-glow" style="background:' + m.palette.glow + '"></div>' +
+      '</div>' +
+      '<div class="picker-name">' + m.name + '</div>' +
+      '<div class="picker-desc">' + m.desc + '</div>';
+
+    document.getElementById('bestScoreLine').textContent = 'BEST SCORE  ' + RV.UI.fmt(s.bestScore);
+  }
+
+  function onShow() {
+    renderCards();
+  }
+
+  RV.HomeScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/HUD.js ==== */
+/* RUSHVERSE - UI/HUD.js
+   Builds the gameplay screen (canvas + touch controls + live HUD overlay),
+   drives GameLoop start/stop, and reacts to its callbacks (hud tick, combo
+   milestones, event banners, game over). */
+(function (RV) {
+  'use strict';
+
+  var el, canvas, hudOverlay, controlsLayer;
+  var paused = false;
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen game-screen';
+    el.innerHTML =
+      '<canvas id="gameCanvas"></canvas>' +
+      '<div id="hudOverlay" class="hud-overlay">' +
+        '<div class="hud-top">' +
+          '<button id="pauseBtn" class="hud-pause">&#10073;&#10073;</button>' +
+          '<div class="hud-hp" id="hudHp"></div>' +
+          '<div class="hud-score-wrap"><div class="hud-score" id="hudScore">0</div><div class="hud-score-label">SCORE</div></div>' +
+        '</div>' +
+        '<div class="hud-combo" id="hudCombo"></div>' +
+        '<div class="hud-banner" id="hudBanner"></div>' +
+        '<div class="hud-status-icons" id="hudStatusIcons"></div>' +
+      '</div>' +
+      '<div id="controlsLayer" class="controls-layer"></div>' +
+      '<div id="pauseMenu" class="pause-menu"></div>';
+    container.appendChild(el);
+
+    canvas = el.querySelector('#gameCanvas');
+    hudOverlay = el.querySelector('#hudOverlay');
+    controlsLayer = el.querySelector('#controlsLayer');
+
+    RV.GameLoop.init(canvas);
+    RV.Controls.build(controlsLayer);
+
+    el.querySelector('#pauseBtn').addEventListener('click', togglePause);
+
+    RV.GameLoop.on('hud', updateHud);
+    RV.GameLoop.on('eventBanner', showBanner);
+    RV.GameLoop.on('gameover', onGameOver);
+
+    return { el: el };
+  }
+
+  function startMatch(characterId, mapId, skin) {
+    paused = false;
+    el.querySelector('#pauseMenu').classList.remove('active');
+    RV.GameLoop.start({ characterId: characterId, mapId: mapId, skin: skin });
+  }
+
+  function togglePause() {
+    paused = !paused;
+    if (paused) { RV.GameLoop.pause(); renderPauseMenu(); }
+    else { RV.GameLoop.resume(); el.querySelector('#pauseMenu').classList.remove('active'); }
+    RV.Audio.sfx.click();
+  }
+
+  function renderPauseMenu() {
+    var m = el.querySelector('#pauseMenu');
+    m.classList.add('active');
+    m.innerHTML =
+      '<div class="pause-card">' +
+        '<div class="pause-title">PAUSED</div>' +
+        '<button class="menu-btn" id="resumeBtn">RESUME</button>' +
+        '<button class="menu-btn" id="restartBtn">RESTART</button>' +
+        '<button class="menu-btn secondary" id="homeBtn">HOME</button>' +
+      '</div>';
+    m.querySelector('#resumeBtn').addEventListener('click', togglePause);
+    m.querySelector('#restartBtn').addEventListener('click', function () {
+      var match = RV.GameLoop.getMatch();
+      togglePause();
+      startMatch(match.character.id, match.map.id, match.skin);
+    });
+    m.querySelector('#homeBtn').addEventListener('click', function () {
+      RV.GameLoop.stop();
+      RV.UI.show('home');
+    });
+  }
+
+  function updateHud(state) {
+    var hpEl = document.getElementById('hudHp');
+    var pips = '';
+    for (var i = 0; i < state.maxHp; i++) pips += '<span class="hp-pip ' + (i < state.hp ? 'full' : 'empty') + '"></span>';
+    hpEl.innerHTML = pips;
+
+    document.getElementById('hudScore').textContent = RV.UI.fmt(state.score);
+
+    var comboEl = document.getElementById('hudCombo');
+    if (state.combo >= 2) {
+      comboEl.style.opacity = 1;
+      comboEl.textContent = 'COMBO x' + state.combo;
+    } else {
+      comboEl.style.opacity = 0;
+    }
+
+    var icons = [];
+    if (state.shieldActive) icons.push('<span class="status-icon" style="color:#7ad9ff">SHIELD</span>');
+    if (state.speedActive) icons.push('<span class="status-icon" style="color:#7dff5a">SPEED</span>');
+    if (state.magnetActive) icons.push('<span class="status-icon" style="color:#ff7ad1">MAGNET</span>');
+    if (state.multiplierActive) icons.push('<span class="status-icon" style="color:#ffce45">x2 SCORE</span>');
+    document.getElementById('hudStatusIcons').innerHTML = icons.join('');
+  }
+
+  function showBanner(text) {
+    var banner = document.getElementById('hudBanner');
+    banner.textContent = text;
+    banner.classList.remove('show');
+    void banner.offsetWidth;
+    banner.classList.add('show');
+  }
+
+  function onGameOver(result) {
+    RV.UI.show('gameover', result);
+  }
+
+  RV.HUD = { build: build, startMatch: startMatch };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/GameOverScreen.js ==== */
+/* RUSHVERSE - UI/GameOverScreen.js
+   End-of-run summary: animated count-up score, NEW HIGH SCORE celebration,
+   and the coins/XP/combo/time-survived breakdown. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var lastResult = null;
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen gameover-screen';
+    container.appendChild(el);
+    return { el: el, onShow: onShow };
+  }
+
+  function onShow(result) {
+    lastResult = result;
+    el.innerHTML =
+      '<div class="gameover-card">' +
+        (result.isNewBest ? '<div class="new-record-badge">NEW HIGH SCORE!</div>' : '<div class="gameover-title">GAME OVER</div>') +
+        '<div class="score-reveal" id="scoreReveal">0</div>' +
+        '<div class="best-line">BEST ' + RV.UI.fmt(result.bestScore) + '</div>' +
+        '<div class="result-grid">' +
+          statBlock('COINS EARNED', '+' + RV.UI.fmt(result.coins), '#ffce45') +
+          statBlock('XP EARNED', '+' + RV.UI.fmt(result.xp), '#7dff5a') +
+          statBlock('BEST COMBO', 'x' + result.combo, '#ff7ad1') +
+          statBlock('TIME SURVIVED', RV.UI.fmtTime(result.survivalMs), '#7ad9ff') +
+        '</div>' +
+        '<button class="menu-btn" id="playAgainBtn">PLAY AGAIN</button>' +
+        '<div class="btn-row">' +
+          '<button class="menu-btn secondary" id="goHomeBtn">HOME</button>' +
+          '<button class="menu-btn secondary" id="goShopBtn">SHOP</button>' +
+        '</div>' +
+      '</div>';
+
+    animateScore(result.score);
+    if (result.isNewBest) RV.Effects && shakeConfetti();
+
+    if (RV.Challenge.isActive()) {
+      var challengeResult = RV.Challenge.resolve(result);
+      setTimeout(function () { showChallengeResult(challengeResult); }, 900);
+    }
+
+    el.querySelector('#playAgainBtn').addEventListener('click', function () {
+      RV.Audio.sfx.click();
+      var s = RV.Save.get();
+      RV.UI.show('game');
+      var match = null;
+      RV.HUD.startMatch(s.characters.equipped, s.maps.unlocked[0], {});
+    });
+    el.querySelector('#goHomeBtn').addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.show('home'); });
+    el.querySelector('#goShopBtn').addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.show('shop'); });
+
+    if (result.levelUps && result.levelUps.length) {
+      setTimeout(function () { RV.LevelUpModal.show(result.levelUps); }, 1200);
+    }
+  }
+
+  function showChallengeResult(cr) {
+    RV.Audio.sfx[cr.won ? 'achievement' : 'warning']();
+    var label = cr.type === 'score' ? 'points' : 'ms survived';
+    var yourVal = cr.type === 'score' ? RV.UI.fmt(cr.playerValue) : RV.UI.fmtTime(cr.playerValue);
+    var oppVal = cr.type === 'score' ? RV.UI.fmt(cr.opponentValue) : RV.UI.fmtTime(cr.opponentValue);
+    var card = RV.UI.modal(
+      '<div class="levelup-title" style="color:' + (cr.won ? '#7dff5a' : '#ff6a6a') + '">' + (cr.won ? 'CHALLENGE WON!' : 'CHALLENGE LOST') + '</div>' +
+      '<div class="challenge-vs-row"><div class="challenge-side"><div class="challenge-name">YOU</div><div class="challenge-value">' + yourVal + '</div></div>' +
+      '<div class="challenge-vs">VS</div>' +
+      '<div class="challenge-side"><div class="challenge-name">' + cr.friendName + '</div><div class="challenge-value">' + oppVal + '</div></div></div>' +
+      '<button class="menu-btn" id="challengeCloseBtn">OK</button>'
+    );
+    card.querySelector('#challengeCloseBtn').addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.closeModal(); });
+  }
+
+  function statBlock(label, value, color) {
+    return '<div class="stat-block"><div class="stat-value" style="color:' + color + '">' + value + '</div><div class="stat-label">' + label + '</div></div>';
+  }
+
+  function animateScore(target) {
+    var elNode = document.getElementById('scoreReveal');
+    var start = performance.now();
+    var dur = 1200;
+    function step(now) {
+      var t = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - t, 3);
+      elNode.textContent = RV.UI.fmt(Math.round(target * eased));
+      if (t < 1) requestAnimationFrame(step);
+      else elNode.textContent = RV.UI.fmt(target);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function shakeConfetti() {
+    var layer = document.getElementById('toastLayer');
+    for (var i = 0; i < 24; i++) {
+      var piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = (45 + Math.random() * 10) + '%';
+      piece.style.background = ['#ffce45', '#ff7ad1', '#7ad9ff', '#7dff5a'][i % 4];
+      piece.style.animationDelay = (Math.random() * 0.3) + 's';
+      layer.appendChild(piece);
+      setTimeout(function (p) { return function () { p.remove(); }; }(piece), 2200);
+    }
+  }
+
+  RV.GameOverScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/LevelUpModal.js ==== */
+/* RUSHVERSE - UI/LevelUpModal.js
+   Big "LEVEL UP!" celebration, chained for multi-level jumps, naming
+   whatever unlocked at that level (skins/characters/maps/effects/rewards). */
+(function (RV) {
+  'use strict';
+
+  function show(levels) {
+    showOne(0);
+    function showOne(i) {
+      if (i >= levels.length) return;
+      var lvl = levels[i];
+      var unlock = RV.Data.LEVEL_UNLOCK_TABLE[lvl];
+      RV.Audio.sfx.levelUp();
+      var card = RV.UI.modal(
+        '<div class="levelup-burst"></div>' +
+        '<div class="levelup-title">LEVEL UP!</div>' +
+        '<div class="levelup-level">LEVEL ' + lvl + '</div>' +
+        (unlock ? '<div class="levelup-unlock">' + unlock + '</div>' : '<div class="levelup-unlock">+50 Coins bonus</div>') +
+        '<button class="menu-btn" id="levelUpNext">' + (i < levels.length - 1 ? 'NEXT' : 'NICE!') + '</button>',
+        { dismissible: false }
+      );
+      if (!unlock) RV.Progress.addCoins(50);
+      card.querySelector('#levelUpNext').addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        RV.UI.closeModal();
+        setTimeout(function () { showOne(i + 1); }, 260);
+      });
+    }
+  }
+
+  RV.LevelUpModal = { show: show };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/TutorialScreen.js ==== */
+/* RUSHVERSE - UI/TutorialScreen.js
+   Sub-minute first-run tutorial: five quick cards (MOVE, DASH, COLLECT,
+   USE ABILITY, SURVIVE), then straight into the player's first match. */
+(function (RV) {
+  'use strict';
+
+  var el, onDone, step;
+  var STEPS = [
+    { title: 'MOVE', desc: 'Drag the left stick to run around the arena.', icon: '&#8598;' },
+    { title: 'DASH', desc: 'Tap DASH (or swipe) to burst through danger.', icon: '&#187;' },
+    { title: 'COLLECT', desc: 'Grab coins and gems to level up faster.', icon: '&#9679;' },
+    { title: 'USE ABILITY', desc: 'Tap the Ability button for your character\'s power.', icon: '&#9889;' },
+    { title: 'SURVIVE', desc: 'The longer you last, the higher your score.', icon: '&#9733;' }
+  ];
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen tutorial-screen';
+    container.appendChild(el);
+    return { el: el, onShow: onShow };
+  }
+
+  function onShow(opts) {
+    onDone = opts && opts.onDone;
+    step = 0;
+    render();
+  }
+
+  function render() {
+    var s = STEPS[step];
+    el.innerHTML =
+      '<div class="tutorial-card">' +
+        '<div class="tutorial-progress">' + (step + 1) + ' / ' + STEPS.length + '</div>' +
+        '<div class="tutorial-icon">' + s.icon + '</div>' +
+        '<div class="tutorial-title">' + s.title + '</div>' +
+        '<div class="tutorial-desc">' + s.desc + '</div>' +
+        '<button class="menu-btn" id="tutorialNext">' + (step === STEPS.length - 1 ? "LET'S GO" : 'NEXT') + '</button>' +
+        '<button class="skip-link" id="tutorialSkip">Skip Tutorial</button>' +
+      '</div>';
+    el.querySelector('#tutorialNext').addEventListener('click', next);
+    el.querySelector('#tutorialSkip').addEventListener('click', finish);
+  }
+
+  function next() {
+    RV.Audio.resume(); RV.Audio.sfx.click();
+    step++;
+    if (step >= STEPS.length) finish();
+    else render();
+  }
+
+  function finish() {
+    var s = RV.Save.get();
+    s.tutorialDone = true;
+    RV.Save.save();
+    if (onDone) onDone();
+  }
+
+  RV.TutorialScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/UI/CollectionScreen.js ==== */
+/* RUSHVERSE - UI/CollectionScreen.js
+   COLLECTION button: Achievements progress, Chest inventory (opens with
+   earned keys, fun reveal animation), and lifetime stats. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var TABS = ['Achievements', 'Chests', 'Stats'];
+  var activeTab = 'Achievements';
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen collection-screen';
+    el.innerHTML =
+      '<div class="screen-title">COLLECTION</div>' +
+      '<div class="tab-row" id="collTabs"></div>' +
+      '<div class="collection-body" id="collBody"></div>';
+    container.appendChild(el);
+
+    el.querySelector('#collTabs').innerHTML = TABS.map(function (t) {
+      return '<button class="tab-btn" data-tab="' + t + '">' + t + '</button>';
+    }).join('');
+    el.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { RV.Audio.sfx.click(); activeTab = btn.dataset.tab; render(); });
+    });
+
+    return { el: el, onShow: render };
+  }
+
+  function render() {
+    el.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === activeTab); });
+    var body = el.querySelector('#collBody');
+    if (activeTab === 'Achievements') body.innerHTML = renderAchievements();
+    else if (activeTab === 'Chests') { body.innerHTML = renderChests(); bindChestButtons(); }
+    else body.innerHTML = renderStats();
+    if (activeTab === 'Achievements') bindAchievementButtons();
+  }
+
+  function renderAchievements() {
+    var list = RV.Progress.getAchievements();
+    return '<div class="list-col">' + list.map(function (a) {
+      var pct = Math.min(100, Math.round(a.progress / a.target * 100));
+      var btn = a.claimed ? '<span class="claimed-tag">CLAIMED</span>'
+        : a.complete ? '<button class="item-btn buy-btn claim-btn" data-id="' + a.id + '">CLAIM</button>'
+        : '';
+      return '<div class="mission-row">' +
+        '<div class="mission-info"><div class="mission-name">' + a.name + '</div><div class="mission-desc">' + a.desc + '</div>' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="progress-label">' + RV.UI.fmt(a.progress) + ' / ' + RV.UI.fmt(a.target) + '</div></div>' +
+        '<div class="mission-reward">' + rewardText(a.reward) + btn + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function bindAchievementButtons() {
+    el.querySelectorAll('.claim-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var reward = RV.Progress.claimAchievement(btn.dataset.id);
+        if (reward) { RV.Audio.sfx.achievement(); RV.UI.toast('Achievement claimed!', '#ffce45'); render(); }
+      });
+    });
+  }
+
+  function renderChests() {
+    var s = RV.Save.get();
+    var rarities = ['common', 'rare', 'epic', 'legendary'];
+    return '<div class="chest-grid">' + rarities.map(function (r) {
+      var count = s.chests[r] || 0, keys = s.keys[r] || 0;
+      return '<div class="chest-card rarity-border-' + (r === 'common' ? 'common' : r === 'rare' ? 'rare' : r) + '">' +
+        '<div class="chest-icon" style="color:' + RV.UI.rarityColor(r === 'common' ? 'common' : r) + '">&#128230;</div>' +
+        '<div class="item-name">' + r.toUpperCase() + ' CHEST</div>' +
+        '<div class="item-desc">Owned: ' + count + ' &nbsp;·&nbsp; Keys: ' + keys + '</div>' +
+        '<button class="item-btn buy-btn open-chest-btn" data-r="' + r + '" ' + (keys > 0 ? '' : 'disabled') + '>OPEN</button>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+  function bindChestButtons() {
+    el.querySelectorAll('.open-chest-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var result = RV.Progress.openChest(btn.dataset.r);
+        if (!result) { RV.UI.toast('No keys for this chest', '#ff6a6a'); return; }
+        showChestOpenAnimation(btn.dataset.r, result);
+      });
+    });
+  }
+
+  function showChestOpenAnimation(rarity, result) {
+    RV.Audio.sfx.chestOpen();
+    var lines = ['+' + result.coins + ' Coins'];
+    if (result.gems) lines.push('+' + result.gems + ' Gems');
+    if (result.skin) lines.push('New skin: ' + result.skin.name);
+    var card = RV.UI.modal(
+      '<div class="chest-open-icon">&#128230;</div>' +
+      '<div class="levelup-title">' + rarity.toUpperCase() + ' CHEST</div>' +
+      '<div class="chest-rewards">' + lines.map(function (l) { return '<div class="chest-reward-line">' + l + '</div>'; }).join('') + '</div>' +
+      '<button class="menu-btn" id="chestCloseBtn">NICE!</button>'
+    );
+    card.querySelector('#chestCloseBtn').addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.closeModal(); render(); });
+  }
+
+  function renderStats() {
+    var s = RV.Save.get();
+    var rows = [
+      ['Best Score', RV.UI.fmt(s.bestScore)],
+      ['Lifetime Coins', RV.UI.fmt(s.lifetimeCoins)],
+      ['Games Played', RV.UI.fmt(s.gamesPlayed)],
+      ['Best Combo', 'x' + s.bestCombo],
+      ['Best Survival', RV.UI.fmtTime(s.bestSurvivalMs)],
+      ['Total Play Time', RV.UI.fmtTime(s.totalSurvivalMs)],
+      ['Damageless Wins', RV.UI.fmt(s.damagelessWins)],
+      ['Ability Uses', RV.UI.fmt(s.abilityUses)],
+      ['Player Code', s.playerCode]
+    ];
+    return '<div class="stats-grid">' + rows.map(function (r) {
+      return '<div class="stat-row"><span>' + r[0] + '</span><span class="stat-row-val">' + r[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function rewardText(reward) {
+    var parts = [];
+    if (reward.coins) parts.push('+' + reward.coins + 'c');
+    if (reward.gems) parts.push('+' + reward.gems + 'g');
+    if (reward.chest) parts.push(reward.chest + ' chest');
+    return '<div class="reward-chip">' + parts.join(' ') + '</div>';
+  }
+
+  RV.CollectionScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Shop/ShopScreen.js ==== */
+/* RUSHVERSE - Shop/ShopScreen.js
+   Five tabs: Characters (unlock via level or coins — never gems-only, so
+   nothing here is pay-to-win), Outfits, Trails, Effects, Emotes. Every card
+   shows rarity, price and a live BUY / EQUIP / OWNED state. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var TABS = [
+    { id: 'characters', label: 'Characters' },
+    { id: 'outfit', label: 'Outfits' },
+    { id: 'trail', label: 'Trails' },
+    { id: 'effect', label: 'Effects' },
+    { id: 'emote', label: 'Emotes' }
+  ];
+  var activeTab = 'characters';
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen shop-screen';
+    el.innerHTML =
+      '<div class="screen-title">SHOP</div>' +
+      '<div class="tab-row" id="shopTabs"></div>' +
+      '<div class="item-grid" id="shopGrid"></div>';
+    container.appendChild(el);
+
+    el.querySelector('#shopTabs').innerHTML = TABS.map(function (t) {
+      return '<button class="tab-btn" data-tab="' + t.id + '">' + t.label + '</button>';
+    }).join('');
+    el.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        activeTab = btn.dataset.tab;
+        render();
+      });
+    });
+
+    return { el: el, onShow: render };
+  }
+
+  function render() {
+    el.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === activeTab); });
+    var grid = el.querySelector('#shopGrid');
+    grid.innerHTML = '';
+    if (activeTab === 'characters') {
+      RV.Data.CHARACTERS.forEach(function (c) { grid.appendChild(characterCard(c)); });
+    } else {
+      RV.Data.SHOP_ITEMS.filter(function (it) { return it.cat === activeTab; }).forEach(function (it) {
+        grid.appendChild(cosmeticCard(it));
+      });
+    }
+  }
+
+  function unlockLabel(u) {
+    if (u.type === 'default') return 'STARTER';
+    if (u.type === 'level') return 'LEVEL ' + u.value;
+    if (u.type === 'coins') return u.value.toLocaleString() + ' COINS';
+    return '';
+  }
+
+  function characterCard(c) {
+    var s = RV.Save.get();
+    var owned = s.characters.owned.indexOf(c.id) !== -1;
+    var equipped = s.characters.equipped === c.id;
+    var card = document.createElement('div');
+    card.className = 'item-card rarity-border-' + c.rarity;
+    var canBuyWithCoins = !owned && c.unlock.type === 'coins';
+    card.innerHTML =
+      '<div class="item-preview" style="background:radial-gradient(circle at 35% 30%,' + c.accent + ',' + c.color + ')"></div>' +
+      '<div class="item-name">' + c.name + '</div>' +
+      '<div class="item-rarity rarity-' + c.rarity + '">' + c.rarity.toUpperCase() + '</div>' +
+      '<div class="item-desc">' + c.ability.name + '</div>' +
+      (owned
+        ? '<button class="item-btn ' + (equipped ? 'owned-btn' : 'buy-btn') + '">' + (equipped ? 'EQUIPPED' : 'EQUIP') + '</button>'
+        : canBuyWithCoins
+          ? '<button class="item-btn buy-btn">UNLOCK — ' + RV.UI.fmt(c.unlock.value) + ' <span class="coin-dot"></span></button>'
+          : '<button class="item-btn locked-btn" disabled>' + unlockLabel(c.unlock) + '</button>');
+
+    var btn = card.querySelector('.item-btn');
+    if (owned && !equipped) {
+      btn.addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        s.characters.equipped = c.id; RV.Save.save();
+        render();
+      });
+    } else if (canBuyWithCoins) {
+      btn.addEventListener('click', function () {
+        if (RV.Progress.spendCoins(c.unlock.value)) {
+          s.characters.owned.push(c.id);
+          RV.Save.save();
+          RV.Audio.sfx.powerup();
+          RV.UI.toast(c.name + ' unlocked!', c.color);
+          render();
+        } else {
+          RV.UI.toast('Not enough coins', '#ff6a6a');
+        }
+      });
+    }
+    return card;
+  }
+
+  function cosmeticCard(item) {
+    var s = RV.Save.get();
+    var owned = s.skins.owned.indexOf(item.id) !== -1;
+    var equipped = s.skins.equipped[item.cat] === item.id;
+    var priceLabel = item.price.coins != null && item.price.coins > 0 ? RV.UI.fmt(item.price.coins) + ' COINS'
+      : item.price.gems ? RV.UI.fmt(item.price.gems) + ' GEMS' : 'FREE';
+    var card = document.createElement('div');
+    card.className = 'item-card rarity-border-' + item.rarity;
+    card.innerHTML =
+      '<div class="item-preview" style="background:linear-gradient(160deg,' + item.color + ',#0a0e16)"></div>' +
+      '<div class="item-name">' + item.name + '</div>' +
+      '<div class="item-rarity rarity-' + item.rarity + '">' + item.rarity.toUpperCase() + '</div>' +
+      (owned
+        ? '<button class="item-btn ' + (equipped ? 'owned-btn' : 'buy-btn') + '">' + (equipped ? 'EQUIPPED' : 'EQUIP') + '</button>'
+        : '<button class="item-btn buy-btn">BUY — ' + priceLabel + '</button>');
+
+    var btn = card.querySelector('.item-btn');
+    if (owned && !equipped) {
+      btn.addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        s.skins.equipped[item.cat] = item.id; RV.Save.save();
+        render();
+      });
+    } else if (!owned) {
+      btn.addEventListener('click', function () {
+        var ok = item.price.gems ? RV.Progress.spendGems(item.price.gems) : RV.Progress.spendCoins(item.price.coins || 0);
+        if (ok) {
+          s.skins.owned.push(item.id);
+          RV.Save.save();
+          RV.Audio.sfx.powerup();
+          RV.UI.toast(item.name + ' purchased!', item.color);
+          render();
+        } else {
+          RV.UI.toast('Not enough currency', '#ff6a6a');
+        }
+      });
+    }
+    return card;
+  }
+
+  RV.ShopScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Missions/MissionsScreen.js ==== */
+/* RUSHVERSE - Missions/MissionsScreen.js
+   Daily / Weekly mission lists with live progress bars and claim buttons. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var activeTab = 'daily';
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen missions-screen';
+    el.innerHTML =
+      '<div class="screen-title">MISSIONS</div>' +
+      '<div class="tab-row" id="missionTabs">' +
+        '<button class="tab-btn" data-tab="daily">Daily</button>' +
+        '<button class="tab-btn" data-tab="weekly">Weekly</button>' +
+      '</div>' +
+      '<div class="list-col" id="missionList"></div>';
+    container.appendChild(el);
+
+    el.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { RV.Audio.sfx.click(); activeTab = btn.dataset.tab; render(); });
+    });
+
+    return { el: el, onShow: render };
+  }
+
+  function render() {
+    el.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === activeTab); });
+    var missions = RV.Progress.getMissions()[activeTab];
+    var list = el.querySelector('#missionList');
+    list.innerHTML = missions.map(function (m) {
+      var pct = Math.min(100, Math.round(m.progress / m.target * 100));
+      var action = m.claimed ? '<span class="claimed-tag">CLAIMED</span>'
+        : m.complete ? '<button class="item-btn buy-btn claim-mission-btn" data-kind="' + m.kind + '" data-id="' + m.id + '">CLAIM</button>'
+        : '';
+      return '<div class="mission-row">' +
+        '<div class="mission-info"><div class="mission-name">' + m.desc + '</div>' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="progress-label">' + RV.UI.fmt(m.progress) + ' / ' + RV.UI.fmt(m.target) + '</div></div>' +
+        '<div class="mission-reward">' + rewardText(m.reward) + action + '</div></div>';
+    }).join('');
+    list.querySelectorAll('.claim-mission-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var reward = RV.Progress.claimMission(btn.dataset.kind, btn.dataset.id);
+        if (reward) { RV.Audio.sfx.achievement(); RV.UI.toast('Mission reward claimed!', '#7dff5a'); render(); }
+      });
+    });
+  }
+
+  function rewardText(reward) {
+    var parts = [];
+    if (reward.coins) parts.push('+' + reward.coins + 'c');
+    if (reward.gems) parts.push('+' + reward.gems + 'g');
+    return '<div class="reward-chip">' + parts.join(' ') + '</div>';
+  }
+
+  RV.MissionsScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Missions/DailyReward.js ==== */
+/* RUSHVERSE - Missions/DailyReward.js
+   7-day login streak. Checked once on boot; shows a modal if today's
+   reward hasn't been claimed yet. Missing a day resets the streak to 1
+   (still lets them claim), it never blocks play. */
+(function (RV) {
+  'use strict';
+
+  var DAY_MS = 86400000;
+
+  function checkAndMaybeShow() {
+    var s = RV.Save.get();
+    var today = Math.floor(Date.now() / DAY_MS);
+    var lastDay = Math.floor((s.dailyReward.lastClaim || 0) / DAY_MS);
+    if (lastDay === today) return; // already claimed today
+
+    var streak = s.dailyReward.streak || 0;
+    var isConsecutive = lastDay === today - 1;
+    var newStreak = isConsecutive ? streak + 1 : 1;
+    if (newStreak > 7) newStreak = 1;
+    show(newStreak);
+  }
+
+  function show(dayNumber) {
+    var def = RV.Data.DAILY_REWARDS[dayNumber - 1];
+    var label = rewardLabel(def);
+    var row = RV.Data.DAILY_REWARDS.map(function (d) {
+      var cls = d.day === dayNumber ? 'daily-cell active' : d.day < dayNumber ? 'daily-cell done' : 'daily-cell';
+      return '<div class="' + cls + '"><div class="daily-day">DAY ' + d.day + '</div><div class="daily-icon">' + dailyIcon(d) + '</div></div>';
+    }).join('');
+
+    var card = RV.UI.modal(
+      '<div class="levelup-title">DAILY REWARD</div>' +
+      '<div class="daily-strip">' + row + '</div>' +
+      '<div class="daily-claim-label">' + label + '</div>' +
+      '<button class="menu-btn" id="dailyClaimBtn">CLAIM</button>',
+      { dismissible: false }
+    );
+    card.querySelector('#dailyClaimBtn').addEventListener('click', function () {
+      RV.Audio.resume(); RV.Audio.sfx.achievement();
+      claim(dayNumber, def);
+      RV.UI.closeModal();
+    });
+  }
+
+  function dailyIcon(d) {
+    if (d.type === 'coins') return '&#9679;';
+    if (d.type === 'gems') return '&#9670;';
+    if (d.type === 'chest') return '&#128230;';
+    if (d.type === 'skin') return '&#9733;';
+    return '?';
+  }
+
+  function rewardLabel(def) {
+    if (def.type === 'coins') return '+' + def.amount + ' Coins';
+    if (def.type === 'gems') return '+' + def.amount + ' Gems';
+    if (def.type === 'chest') return 'A ' + def.amount + ' chest + key';
+    if (def.type === 'skin') return 'A free skin';
+    if (def.type === 'random') return 'A mystery reward';
+    return '';
+  }
+
+  function claim(dayNumber, def) {
+    var s = RV.Save.get();
+    s.dailyReward.streak = dayNumber;
+    s.dailyReward.lastClaim = Date.now();
+    RV.Save.save();
+
+    if (def.type === 'coins') RV.Progress.addCoins(def.amount);
+    else if (def.type === 'gems') RV.Progress.addGems(def.amount);
+    else if (def.type === 'chest') { RV.Progress.addChest(def.amount, 1); RV.Progress.addKey(def.amount, 1); }
+    else if (def.type === 'skin') RV.Progress.grantRandomSkin();
+    else if (def.type === 'random') {
+      var roll = Math.random();
+      if (roll < 0.5) RV.Progress.addCoins(120);
+      else if (roll < 0.85) RV.Progress.addGems(8);
+      else RV.Progress.grantRandomSkin();
+    }
+    RV.UI.renderHeader();
+  }
+
+  RV.DailyReward = { checkAndMaybeShow: checkAndMaybeShow };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Leaderboard/LeaderboardData.js ==== */
+/* RUSHVERSE - Leaderboard/LeaderboardData.js
+   No backend is available, so this generates a stable local leaderboard
+   (seeded once, cached) and inserts the player's real best score at the
+   correct rank. Built so a real API can replace `generatePool()` later
+   without touching the screen code. */
+(function (RV) {
+  'use strict';
+
+  var NAME_PARTS1 = ['Neo', 'Vex', 'Zed', 'Kai', 'Rin', 'Axl', 'Ivy', 'Jax', 'Lux', 'Mox', 'Nyx', 'Rex', 'Sky', 'Fox', 'Ash', 'Cyn'];
+  var NAME_PARTS2 = ['Runner', 'Strike', 'Blaze', 'Storm', 'Shift', 'Bolt', 'Rush', 'Flux', 'Dash', 'Wave', 'Frost', 'Volt'];
+
+  var CACHE_KEY = 'rushverse_lb_pool_v1';
+
+  function seededRandom(seed) {
+    var x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+
+  function generatePool() {
+    var pool = [];
+    for (var i = 0; i < 150; i++) {
+      var r1 = seededRandom(i * 12.9898);
+      var r2 = seededRandom(i * 78.233 + 1);
+      var name = NAME_PARTS1[Math.floor(r1 * NAME_PARTS1.length)] + NAME_PARTS2[Math.floor(r2 * NAME_PARTS2.length)];
+      var tier = Math.pow(1 - i / 150, 2.2);
+      var score = Math.round(400 + tier * 48000 + seededRandom(i * 3.14) * 1500);
+      pool.push({ name: name, score: score, level: Math.max(1, Math.round(5 + tier * 60)) });
+    }
+    pool.sort(function (a, b) { return b.score - a.score; });
+    return pool;
+  }
+
+  function getPool() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    var pool = generatePool();
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(pool)); } catch (e) {}
+    return pool;
+  }
+
+  function board(category) {
+    var s = RV.Save.get();
+    var pool = getPool().slice();
+    var scaleMap = { global: 1, weekly: 0.32, monthly: 0.62, friends: 1 };
+    var scale = scaleMap[category] != null ? scaleMap[category] : 1;
+    var entries;
+    if (category === 'friends') {
+      entries = s.friends.map(function (f) { return { name: f.name, score: f.best, level: f.level, isFriend: true }; });
+    } else {
+      entries = pool.map(function (p) { return { name: p.name, score: Math.round(p.score * scale), level: p.level }; });
+    }
+    entries.push({ name: s.playerName, score: category === 'weekly' ? weeklyPlayerScore() : s.bestScore, level: RV.Progress.xpProgress().level, isPlayer: true });
+    entries.sort(function (a, b) { return b.score - a.score; });
+    var rank = entries.findIndex(function (e) { return e.isPlayer; }) + 1;
+    // Never slice the player out of the returned list, even at a low rank —
+    // the screen needs their entry to render the "your rank" row.
+    return { entries: entries, playerRank: rank, totalCount: entries.length };
+  }
+
+  function weeklyPlayerScore() {
+    return Math.round(RV.Save.get().bestScore * (0.5 + Math.random() * 0.2));
+  }
+
+  function addFriend(code) {
+    var s = RV.Save.get();
+    code = (code || '').trim().toUpperCase();
+    if (!/^RV-[A-Z0-9]{5}$/.test(code)) return { error: 'Invalid code format (RV-XXXXX)' };
+    if (code === s.playerCode) return { error: "That's your own code!" };
+    if (s.friends.some(function (f) { return f.code === code; })) return { error: 'Already friends' };
+    var seed = code.split('').reduce(function (a, c) { return a + c.charCodeAt(0); }, 0);
+    var r1 = seededRandom(seed), r2 = seededRandom(seed * 2.1);
+    var friend = {
+      code: code,
+      name: NAME_PARTS1[Math.floor(r1 * NAME_PARTS1.length)] + NAME_PARTS2[Math.floor(r2 * NAME_PARTS2.length)],
+      level: Math.max(1, Math.round(3 + r1 * 40)),
+      best: Math.round(500 + r2 * 20000),
+      online: r1 > 0.4
+    };
+    s.friends.push(friend);
+    RV.Save.save();
+    return { friend: friend };
+  }
+
+  RV.LeaderboardData = { board: board, addFriend: addFriend };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Leaderboard/Challenge.js ==== */
+/* RUSHVERSE - Leaderboard/Challenge.js
+   Local/demo challenge mode: no real opponent server, so a friend's
+   "attempt" is simulated from their profile once the player's run ends.
+   Built so a networked matchmaker could later replace resolveOpponent(). */
+(function (RV) {
+  'use strict';
+
+  var active = null; // {type: 'score'|'survival', target, friend}
+
+  var TYPES = {
+    score: { label: 'Score Race', desc: 'First to {t} points.' },
+    survival: { label: 'Survival Duel', desc: 'Whoever survives longest wins.' }
+  };
+
+  function start(friend, type) {
+    active = { type: type, friend: friend };
+    if (type === 'score') active.target = Math.round(friend.best * (0.55 + Math.random() * 0.25));
+  }
+
+  function isActive() { return !!active; }
+
+  function resolveOpponent() {
+    // Simulated opponent performance derived from the friend's profile.
+    var f = active.friend;
+    if (active.type === 'score') return Math.round(f.best * (0.4 + Math.random() * 0.5));
+    return Math.round((30000 + f.level * 4000) * (0.6 + Math.random() * 0.6));
+  }
+
+  function resolve(result) {
+    if (!active) return null;
+    var playerValue = active.type === 'score' ? result.score : result.survivalMs;
+    var opponentValue = resolveOpponent();
+    var won = playerValue >= opponentValue;
+    var out = {
+      type: active.type, friendName: active.friend.name,
+      playerValue: playerValue, opponentValue: opponentValue, won: won
+    };
+    active = null;
+    return out;
+  }
+
+  RV.Challenge = { TYPES: TYPES, start: start, isActive: isActive, resolve: resolve };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Leaderboard/LeaderboardScreen.js ==== */
+/* RUSHVERSE - Leaderboard/LeaderboardScreen.js
+   Global / Friends / Weekly / Monthly tabs, top-3 podium, player's own
+   rank row, add-friend-by-code, and per-friend Challenge launcher. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var TABS = ['global', 'friends', 'weekly', 'monthly'];
+  var activeTab = 'global';
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen leaderboard-screen';
+    el.innerHTML =
+      '<div class="screen-title">LEADERBOARD</div>' +
+      '<div class="tab-row" id="lbTabs">' + TABS.map(function (t) {
+        return '<button class="tab-btn" data-tab="' + t + '">' + t.toUpperCase() + '</button>';
+      }).join('') + '</div>' +
+      '<div id="lbBody"></div>';
+    container.appendChild(el);
+
+    el.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { RV.Audio.sfx.click(); activeTab = btn.dataset.tab; render(); });
+    });
+
+    return { el: el, onShow: render };
+  }
+
+  function render() {
+    el.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === activeTab); });
+    var body = el.querySelector('#lbBody');
+    if (activeTab === 'friends') {
+      body.innerHTML = renderFriendsAdd() + renderBoard('friends');
+      bindAddFriend();
+      bindChallengeButtons();
+    } else {
+      body.innerHTML = renderBoard(activeTab);
+    }
+  }
+
+  function renderFriendsAdd() {
+    var s = RV.Save.get();
+    return '<div class="friend-code-box">' +
+      '<div class="friend-code-label">YOUR PLAYER CODE</div>' +
+      '<div class="friend-code-value">' + s.playerCode + '</div>' +
+      '<div class="friend-add-row"><input id="friendCodeInput" class="friend-input" placeholder="RV-XXXXX" maxlength="8">' +
+      '<button class="menu-btn small-btn" id="friendAddBtn">ADD</button></div></div>';
+  }
+
+  function bindAddFriend() {
+    var btn = el.querySelector('#friendAddBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var input = el.querySelector('#friendCodeInput');
+      var res = RV.LeaderboardData.addFriend(input.value);
+      if (res.error) { RV.UI.toast(res.error, '#ff6a6a'); }
+      else { RV.Audio.sfx.powerup(); RV.UI.toast(res.friend.name + ' added!', '#7dff5a'); render(); }
+    });
+  }
+
+  function renderBoard(category) {
+    var data = RV.LeaderboardData.board(category);
+    var entries = data.entries;
+    if (category === 'friends' && entries.length <= 1) {
+      return '<div class="empty-state">No friends yet — add one with a player code above!</div>';
+    }
+    if (category === 'friends') {
+      // Small lists: skip the podium (it has no room for a Challenge button)
+      // and just list everyone with their rank + challenge action.
+      return '<div class="lb-list">' + entries.map(function (e, i) { return rowHtml(i + 1, e, category); }).join('') + '</div>';
+    }
+    var top3 = entries.slice(0, 3);
+    var podium = '<div class="podium-row">' + top3.map(function (e, i) {
+      return '<div class="podium-item rank-' + (i + 1) + '">' +
+        '<div class="podium-rank">#' + (i + 1) + '</div>' +
+        '<div class="podium-avatar"></div>' +
+        '<div class="podium-name">' + e.name + '</div>' +
+        '<div class="podium-score">' + RV.UI.fmt(e.score) + '</div></div>';
+    }).join('') + '</div>';
+
+    var rest = entries.slice(3, 30).map(function (e, i) {
+      var rank = i + 4;
+      return rowHtml(rank, e, category);
+    }).join('');
+
+    var playerRow = '';
+    if (data.playerRank > 30) {
+      var playerEntry = entries.filter(function (e) { return e.isPlayer; })[0];
+      playerRow = '<div class="lb-divider">&#8942;</div>' + rowHtml(data.playerRank, playerEntry, category);
+    }
+
+    return podium + '<div class="lb-list">' + rest + playerRow + '</div>';
+  }
+
+  function rowHtml(rank, e, category) {
+    var challengeBtn = (category === 'friends' && !e.isPlayer)
+      ? '<button class="challenge-btn" data-name="' + e.name + '">CHALLENGE</button>' : '';
+    return '<div class="lb-row ' + (e.isPlayer ? 'is-player' : '') + '">' +
+      '<div class="lb-rank">#' + rank + '</div>' +
+      '<div class="lb-name">' + (e.isPlayer ? 'YOU' : e.name) + '</div>' +
+      '<div class="lb-score">' + RV.UI.fmt(e.score) + '</div>' + challengeBtn + '</div>';
+  }
+
+  function bindChallengeButtons() {
+    el.querySelectorAll('.challenge-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var s = RV.Save.get();
+        var friend = s.friends.filter(function (f) { return f.name === btn.dataset.name; })[0];
+        if (!friend) return;
+        openChallengeModal(friend);
+      });
+    });
+  }
+
+  function openChallengeModal(friend) {
+    var card = RV.UI.modal(
+      '<div class="levelup-title">CHALLENGE ' + friend.name.toUpperCase() + '</div>' +
+      '<div class="challenge-type-row">' +
+        '<button class="menu-btn challenge-type-btn" data-type="score">SCORE RACE</button>' +
+        '<button class="menu-btn secondary challenge-type-btn" data-type="survival">SURVIVAL DUEL</button>' +
+      '</div>'
+    );
+    card.querySelectorAll('.challenge-type-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        RV.Challenge.start(friend, btn.dataset.type);
+        RV.UI.closeModal();
+        var save = RV.Save.get();
+        RV.UI.show('game');
+        RV.HUD.startMatch(save.characters.equipped, save.maps.unlocked[0], {});
+      });
+    });
+  }
+
+  RV.LeaderboardScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/Settings/SettingsScreen.js ==== */
+/* RUSHVERSE - Settings/SettingsScreen.js
+   Music/SFX volume, graphics quality, vibration, language, controls side,
+   account info, and a guarded reset-data action. */
+(function (RV) {
+  'use strict';
+
+  var el;
+  var LANG_LABELS = { en: 'English', he: 'עברית' };
+
+  function build(container) {
+    el = document.createElement('div');
+    el.className = 'screen settings-screen';
+    container.appendChild(el);
+    return { el: el, onShow: render };
+  }
+
+  function render() {
+    var s = RV.Save.get().settings;
+    var save = RV.Save.get();
+    el.innerHTML =
+      '<div class="screen-title">SETTINGS</div>' +
+      '<div class="settings-list">' +
+        sliderRow('Music Volume', 'musicVolume', s.musicVolume) +
+        sliderRow('SFX Volume', 'sfxVolume', s.sfxVolume) +
+        segmentRow('Graphics', 'graphics', s.graphics, ['low', 'medium', 'high']) +
+        toggleRow('Vibration', 'vibration', s.vibration) +
+        segmentRow('Language', 'language', s.language, ['en', 'he'], LANG_LABELS) +
+        segmentRow('Joystick Side', 'joystickSide', s.joystickSide, ['left', 'right']) +
+        '<div class="settings-section-title">ACCOUNT</div>' +
+        '<div class="settings-row"><span>Player Code</span><span class="stat-row-val">' + save.playerCode + '</span></div>' +
+        '<div class="settings-row"><span>Level</span><span class="stat-row-val">' + RV.Progress.xpProgress().level + '</span></div>' +
+        '<button class="menu-btn danger-btn" id="resetDataBtn">RESET DATA</button>' +
+      '</div>';
+
+    el.querySelectorAll('input[type=range]').forEach(function (input) {
+      input.addEventListener('input', function () {
+        var save2 = RV.Save.get();
+        save2.settings[input.dataset.key] = parseFloat(input.value);
+        RV.Save.save();
+        RV.Audio.applyVolumes();
+      });
+    });
+    el.querySelectorAll('.segment-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        var save2 = RV.Save.get();
+        save2.settings[btn.dataset.key] = btn.dataset.value;
+        RV.Save.save();
+        if (btn.dataset.key === 'joystickSide') RV.Controls.applySide();
+        render();
+      });
+    });
+    el.querySelectorAll('.toggle-switch').forEach(function (t) {
+      t.addEventListener('click', function () {
+        RV.Audio.sfx.click();
+        var save2 = RV.Save.get();
+        save2.settings[t.dataset.key] = !save2.settings[t.dataset.key];
+        RV.Save.save();
+        render();
+      });
+    });
+    el.querySelector('#resetDataBtn').addEventListener('click', confirmReset);
+  }
+
+  function sliderRow(label, key, value) {
+    return '<div class="settings-row"><span>' + label + '</span>' +
+      '<input type="range" min="0" max="1" step="0.05" value="' + value + '" data-key="' + key + '" class="volume-slider"></div>';
+  }
+  function toggleRow(label, key, value) {
+    return '<div class="settings-row"><span>' + label + '</span>' +
+      '<div class="toggle-switch ' + (value ? 'on' : '') + '" data-key="' + key + '"><div class="toggle-knob"></div></div></div>';
+  }
+  function segmentRow(label, key, value, options, labels) {
+    return '<div class="settings-row col"><span>' + label + '</span><div class="segment-group">' +
+      options.map(function (o) {
+        return '<button class="segment-btn ' + (o === value ? 'active' : '') + '" data-key="' + key + '" data-value="' + o + '">' +
+          (labels ? labels[o] : o.toUpperCase()) + '</button>';
+      }).join('') + '</div></div>';
+  }
+
+  function confirmReset() {
+    var card = RV.UI.modal(
+      '<div class="levelup-title" style="color:#ff6a6a">RESET ALL DATA?</div>' +
+      '<div class="item-desc" style="text-align:center;margin:8px 0 18px">This permanently deletes your progress, currency, and unlocks. This cannot be undone.</div>' +
+      '<button class="menu-btn danger-btn" id="confirmResetBtn">YES, RESET</button>' +
+      '<button class="menu-btn secondary" id="cancelResetBtn">CANCEL</button>'
+    );
+    card.querySelector('#confirmResetBtn').addEventListener('click', function () {
+      RV.Save.reset();
+      RV.UI.closeModal();
+      RV.UI.renderHeader();
+      RV.UI.show('home');
+      RV.UI.toast('Data reset', '#ff6a6a');
+    });
+    card.querySelector('#cancelResetBtn').addEventListener('click', function () { RV.UI.closeModal(); });
+  }
+
+  RV.SettingsScreen = { build: build };
+})(window.RV || (window.RV = {}));
+
+
+/* ==== js/main.js ==== */
+/* RUSHVERSE - main.js
+   Boot sequence: build every screen, wire the bottom nav, load save data,
+   and show the home screen. Kept deliberately thin — all real logic lives
+   in the feature modules under /js. */
+(function (RV) {
+  'use strict';
+
+  var NAV_ITEMS = [
+    { id: 'shop', label: 'SHOP', icon: '&#128722;' },
+    { id: 'collection', label: 'COLLECTION', icon: '&#127942;' },
+    { id: 'home', label: 'HOME', icon: '&#9733;', isHome: true },
+    { id: 'missions', label: 'MISSIONS', icon: '&#128203;' },
+    { id: 'leaderboard', label: 'RANKS', icon: '&#128200;' }
+  ];
+
+  function buildBottomNav() {
+    var nav = document.getElementById('bottomNav');
+    nav.innerHTML = NAV_ITEMS.map(function (item) {
+      return '<button class="nav-btn ' + (item.isHome ? 'nav-home' : '') + '" data-screen="' + item.id + '">' +
+        '<span class="nav-icon">' + item.icon + '</span><span class="nav-label">' + item.label + '</span></button>';
+    }).join('') + '<button class="nav-btn" data-screen="settings"><span class="nav-icon">&#9881;</span><span class="nav-label">SETTINGS</span></button>';
+
+    nav.querySelectorAll('.nav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        RV.Audio.resume(); RV.Audio.sfx.click();
+        RV.UI.show(btn.dataset.screen);
+        updateNavActive(btn.dataset.screen);
+      });
+    });
+  }
+
+  function updateNavActive(screen) {
+    document.querySelectorAll('.nav-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.screen === screen);
+    });
+  }
+
+  function boot() {
+    RV.Save.get(); // ensure loaded
+
+    var stage = document.getElementById('stage');
+    RV.UI.registerScreen('home', RV.HomeScreen.build(stage));
+    RV.UI.registerScreen('game', RV.HUD.build(stage));
+    RV.UI.registerScreen('gameover', RV.GameOverScreen.build(stage));
+    RV.UI.registerScreen('tutorial', RV.TutorialScreen.build(stage));
+    RV.UI.registerScreen('shop', RV.ShopScreen.build(stage));
+    RV.UI.registerScreen('collection', RV.CollectionScreen.build(stage));
+    RV.UI.registerScreen('missions', RV.MissionsScreen.build(stage));
+    RV.UI.registerScreen('leaderboard', RV.LeaderboardScreen.build(stage));
+    RV.UI.registerScreen('settings', RV.SettingsScreen.build(stage));
+
+    RV.UI.init(document.getElementById('app'));
+    buildBottomNav();
+    updateNavActive('home');
+    RV.UI.show('home');
+
+    RV.Progress.on('achievementComplete', function (a) {
+      RV.UI.toast('Achievement unlocked: ' + a.name, '#ffce45');
+    });
+    RV.Progress.on('characterUnlocked', function (c) {
+      if (c) RV.UI.toast('Character unlocked: ' + c.name, c.color);
+    });
+    RV.Progress.on('mapUnlocked', function (m) {
+      if (m) RV.UI.toast('Map unlocked: ' + m.name, '#7ad9ff');
+    });
+
+    setTimeout(function () { RV.DailyReward.checkAndMaybeShow(); }, 500);
+
+    document.getElementById('bootLoader').classList.add('hidden');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})(window.RV || (window.RV = {}));
+
+</script>
+</body>
+</html>
