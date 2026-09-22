@@ -37,7 +37,9 @@
 
   function project(x, z) { return RV.Camera.project(x, z); }
 
-  function difficultyAt(elapsed) { return 1 + elapsed / 42; }
+  function difficultyAt(elapsed) { return Math.min(4.5, 1 + elapsed / 42); }
+
+  var lastCompletedReplay = null;
 
   function start(opts) {
     var characterDef = RV.Data.getCharacter(opts.characterId) || RV.Data.CHARACTERS[0];
@@ -55,13 +57,31 @@
       enemySpawnTimer: 2, obstacleSpawnTimer: 1, powerupSpawnTimer: 6, coinSpawnTimer: 0,
       globalSlowTimer: 0, bossSpawnedForEvent: false,
       floaterCombo: null,
-      ended: false
+      ended: false,
+      // Boss Battle mode: a dedicated single-boss fight instead of the usual
+      // survival wave spawner (see spawnBoss / boss phase logic in update()).
+      bossMode: !!opts.bossMode, bossPhase: 1, bossDefeated: false,
+      // Advanced combo tracking (near miss / chain / multi-collect cooldowns)
+      nearMissCooldowns: {}, chainCount: 0, chainTimer: 0,
+      lastCollectTime: -10, multiCollectStreak: 0, bestMultiCollectThisRun: 0,
+      nearMissesThisRun: 0, perfectDodgesThisRun: 0,
+      // Lightweight replay recording (position/HP/score samples + moment markers)
+      replay: { samples: [], moments: [] }, _replayAccum: 0
     };
     RV.Maps.resetAmbient(mapDef, ARENA_RADIUS);
     RV.Effects.clear();
     RV.Audio.playMusic(mapDef.musicKey, function () { return Math.min(1, match.elapsed / 90); });
 
     for (var i = 0; i < 6; i++) spawnCoin();
+    // Map Randomizer: seed a couple of obstacles immediately (instead of
+    // only after the spawn timer fires) so the opening seconds of every
+    // run already look different from the last one.
+    if (!match.bossMode) {
+      var startObstacleCount = 1 + Math.floor(Math.random() * 2);
+      for (var j = 0; j < startObstacleCount; j++) spawnObstacle();
+    } else {
+      spawnBoss();
+    }
 
     running = true; paused = false;
     lastTime = performance.now();
@@ -130,11 +150,52 @@
     match.enemies.push(e);
   }
 
+  // ---------- Boss Battle mode ----------
+  function spawnBoss() {
+    var boss = RV.Enemy.spawn('boss', 0, -6, 1);
+    boss.hp = boss.maxHp = 60;
+    boss.isMainBoss = true;
+    boss.weakOpen = false;
+    boss.weakTimer = 8;
+    boss.baseSpeed = boss.speed;
+    match.enemies.push(boss);
+    fire('eventBanner', 'THE OVERLORD');
+  }
+
+  function updateBossPhase(dt) {
+    var boss = match.enemies.filter(function (e) { return e.isMainBoss; })[0];
+    if (!boss) return;
+    var ratio = boss.hp / boss.maxHp;
+    var phase = ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
+    if (phase !== match.bossPhase) {
+      match.bossPhase = phase;
+      RV.Audio.sfx.eventAlert();
+      RV.Effects.shake(10);
+      if (phase === 2) { fire('eventBanner', 'PHASE 2: ARENA SHIFTING'); }
+      else if (phase === 3) {
+        fire('eventBanner', 'PHASE 3: OVERLORD ENRAGED');
+        boss.speed = boss.baseSpeed * 1.45;
+      }
+    }
+    // Weak point: opens periodically; dashing through the boss while open
+    // deals bonus damage (see resolveCollisions), rewarding good timing.
+    boss.weakTimer -= dt;
+    if (boss.weakTimer <= 0) {
+      boss.weakOpen = !boss.weakOpen;
+      boss.weakTimer = boss.weakOpen ? 3 : (phase === 3 ? 4.5 : 6.5);
+      if (boss.weakOpen) { RV.Audio.sfx.warning(); }
+    }
+    // Phase 1 sends extra obstacles; phase 2 speeds the arena up further.
+    if (phase >= 1 && match.obstacles.length < (phase === 1 ? 3 : 5)) {
+      match.obstacleSpawnTimer = Math.min(match.obstacleSpawnTimer, phase === 1 ? 2.5 : 1.4);
+    }
+  }
+
   // ---------- Ability effects ----------
   function applyAbilityEffect(ability) {
     var p = match.player;
     match.abilityUses++;
-    RV.Progress.updateMissionStat('abilityUsesThisPeriod', 1, 'add');
+    RV.Progress.updateTrackedStat('abilityUsesThisPeriod', 1, 'add');
     RV.Audio.sfx.ability();
     RV.Effects.shake(4);
     RV.Effects.burst(p.x, p.z, p.character.color, { count: 22, speed: 130, life: 0.5 });
@@ -147,14 +208,20 @@
       case 'blink':
         break; // handled entirely by Player dash mechanics
       case 'shockwave':
+        var shockKills = 0;
         match.enemies.forEach(function (e) {
           var d = Math.hypot(e.x - p.x, e.z - p.z);
           if (d < 3.6) {
             RV.Enemy.applyStun(e, 1.8);
             var killed = RV.Enemy.hit(e, d < 2 ? 5 : 2);
-            if (killed) onEnemyDefeated(e);
+            if (killed) { onEnemyDefeated(e); shockKills++; }
           }
         });
+        if (shockKills >= 2) {
+          addScore(shockKills * 80 * comboScoreMultiplier());
+          registerCombo('abilityCombo');
+          RV.Effects.floatText(p.x, p.z, 'ABILITY COMBO x' + shockKills, '#ff3bd6', { size: 18 });
+        }
         break;
       case 'frostfield':
         match.globalSlowTimer = ability.duration / 1000;
@@ -170,13 +237,20 @@
 
   function onEnemyDefeated(e) {
     match.enemiesDefeated++;
-    RV.Progress.updateMissionStat('enemiesThisPeriod', 1, 'add');
+    RV.Progress.updateTrackedStat('enemiesThisPeriod', 1, 'add');
     var mult = comboScoreMultiplier();
     addScore(e.score * mult);
     RV.Effects.burst(e.x, e.z, e.color, { count: 16, speed: 140, life: 0.45 });
     RV.Effects.floatText(e.x, e.z, '+' + Math.round(e.score * mult), e.color);
     RV.Audio.sfx.enemyDefeat();
     registerCombo('kill');
+    recordReplayMoment('kill', e.type === 'boss' ? 'Boss hit!' : 'Enemy defeated', e.color);
+    if (e.isMainBoss) {
+      match.bossDefeated = true;
+      RV.Audio.sfx.achievement();
+      RV.Effects.shake(16);
+      endMatch();
+    }
   }
 
   function comboScoreMultiplier() {
@@ -216,16 +290,18 @@
     var input = RV.Controls.consumeFrame();
     var p = match.player;
 
+    var prevX = p.x, prevZ = p.z;
     RV.Player.update(p, dt, input, ARENA_RADIUS);
+    match.distance = (match.distance || 0) + Math.hypot(p.x - prevX, p.z - prevZ);
     RV.Camera.follow(p.x, p.z);
     RV.Controls.setAbilityCooldownDisplay(1 - p.abilityCooldown / (p.character.ability.cooldown / 1000));
 
     RV.Player.drainEvents(p).forEach(function (ev) {
-      if (ev.type === 'dash') { RV.Audio.sfx.dash(); RV.Effects.burst(p.x, p.z, p.character.color, { count: 8, speed: 60, life: 0.3 }); checkPerfectDash(); }
-      else if (ev.type === 'swipe') { RV.Audio.sfx.dash(); registerCombo('dodge'); }
+      if (ev.type === 'dash') { RV.Audio.sfx.dash(); RV.Effects.burst(p.x, p.z, p.character.color, { count: 8, speed: 60, life: 0.3 }); checkPerfectDodge(); }
+      else if (ev.type === 'swipe') { RV.Audio.sfx.dash(); checkPerfectDodge(); }
       else if (ev.type === 'jump') { RV.Audio.sfx.jump(); }
-      else if (ev.type === 'ability') { applyAbilityEffect(ev.data.ability); }
-      else if (ev.type === 'hit') { RV.Audio.sfx.hit(); RV.Controls.vibrate(60); RV.Effects.shake(9); RV.Effects.burst(p.x, p.z, '#ff3860', { count: 14, speed: 110, life: 0.4 }); RV.Combo.onHit(match.combo); }
+      else if (ev.type === 'ability') { applyAbilityEffect(ev.data.ability); recordReplayMoment('ability', p.character.ability.name, p.character.color); }
+      else if (ev.type === 'hit') { RV.Audio.sfx.hit(); RV.Controls.vibrate(60); RV.Effects.shake(9); RV.Effects.burst(p.x, p.z, '#ff3860', { count: 14, speed: 110, life: 0.4 }); RV.Combo.onHit(match.combo); recordReplayMoment('hit', 'Hit!', '#ff3860'); }
       else if (ev.type === 'secondChance') { RV.Effects.floatText(p.x, p.z, 'SECOND CHANCE!', '#ff5e5e', { size: 22, life: 1.2 }); }
       else if (ev.type === 'died') { endMatch(); }
     });
@@ -240,6 +316,9 @@
     updateProjectiles(dt);
     updatePickups(dt);
     resolveCollisions(dt);
+    if (match.bossMode) updateBossPhase(dt);
+    updateAdvancedCombo(dt);
+    recordReplaySample(dt);
 
     RV.Combo.update(match.combo, dt);
     RV.Events.update(match.events, dt, match.elapsed, onEventTrigger);
@@ -249,9 +328,11 @@
     // spawning
     match.obstacleSpawnTimer -= dt;
     if (match.obstacleSpawnTimer <= 0) { spawnObstacle(); match.obstacleSpawnTimer = Math.max(2.2, 5.5 - difficulty * 0.5); }
-    var enemyInterval = match.events.active === 'speedMode' ? 1.4 : Math.max(1.6, 4.4 - difficulty * 0.45);
-    match.enemySpawnTimer -= dt;
-    if (match.enemySpawnTimer <= 0) { spawnEnemy(); match.enemySpawnTimer = enemyInterval; }
+    if (!match.bossMode) {
+      var enemyInterval = match.events.active === 'speedMode' ? 1.4 : Math.max(1.6, 4.4 - difficulty * 0.45);
+      match.enemySpawnTimer -= dt;
+      if (match.enemySpawnTimer <= 0) { spawnEnemy(); match.enemySpawnTimer = enemyInterval; }
+    }
     match.coinSpawnTimer -= dt;
     if (match.coinSpawnTimer <= 0) { spawnCoin(); match.coinSpawnTimer = match.events.active === 'coinRain' ? 0.15 : 1.6; }
     match.powerupSpawnTimer -= dt;
@@ -267,24 +348,106 @@
     // display score animates toward real score
     match.displayScore += (match.score - match.displayScore) * Math.min(1, dt * 6);
 
-    RV.Progress.updateMissionStat('bestSurvivalThisPeriod', match.elapsed, 'max');
-    RV.Progress.updateMissionStat('bestComboThisPeriod', match.combo.best, 'max');
-    RV.Progress.updateMissionStat('bestScoreThisPeriod', match.score, 'max');
+    RV.Progress.updateTrackedStat('bestSurvivalThisPeriod', match.elapsed, 'max');
+    RV.Progress.updateTrackedStat('bestComboThisPeriod', match.combo.best, 'max');
+    RV.Progress.updateTrackedStat('bestScoreThisPeriod', match.score, 'max');
 
     fire('hud', getHudState());
   }
 
-  function checkPerfectDash() {
+  function checkPerfectDodge() {
     var p = match.player;
     var wasNearHazard = match.obstacles.some(function (o) {
       var res = RV.Obstacles.checkCollision(o, p.x, p.z, p.radius + 1.1, false);
       return res.danger;
+    }) || match.enemies.some(function (e) {
+      return !e.isMainBoss && Math.hypot(e.x - p.x, e.z - p.z) < e.radius + p.radius + 1.0;
     });
     if (wasNearHazard) {
-      addScore(120 * comboScoreMultiplier());
-      registerCombo('perfectDash');
-      RV.Effects.floatText(p.x, p.z, 'PERFECT!', '#7dff5a', { size: 18 });
+      addScore(100 * comboScoreMultiplier());
+      registerCombo('perfectDodge');
+      registerChain();
+      match.perfectDodgesThisRun++;
+      RV.Effects.floatText(p.x, p.z, 'PERFECT DODGE\n+100', '#7dff5a', { size: 18 });
+    } else {
+      registerCombo('dodge');
     }
+  }
+
+  // NEAR MISS: passing close to (but not touching) a live hazard/enemy,
+  // without the deliberate dash/dodge timing that earns a Perfect Dodge.
+  function checkNearMisses() {
+    var p = match.player;
+    var now = match.elapsed;
+    match.obstacles.forEach(function (o) {
+      if (!RV.Obstacles.isDangerousNow(o)) return;
+      var last = match.nearMissCooldowns[o.id] || -10;
+      if (now - last < 1.4) return;
+      var band = RV.Obstacles.checkCollision(o, p.x, p.z, p.radius + 0.9, RV.Player.isAirborne(p));
+      var touching = RV.Obstacles.checkCollision(o, p.x, p.z, p.radius, RV.Player.isAirborne(p));
+      if (band.danger && !touching.danger) awardNearMiss(o.id, p);
+    });
+    match.enemies.forEach(function (e) {
+      if (e.isMainBoss) return;
+      var key = 'e' + e.id;
+      var last = match.nearMissCooldowns[key] || -10;
+      if (now - last < 1.4) return;
+      var d = Math.hypot(e.x - p.x, e.z - p.z);
+      if (d < e.radius + p.radius + 0.7 && d > e.radius + p.radius) awardNearMiss(key, p);
+    });
+  }
+  function awardNearMiss(key, p) {
+    match.nearMissCooldowns[key] = match.elapsed;
+    match.nearMissesThisRun++;
+    addScore(50 * comboScoreMultiplier());
+    registerCombo('nearMiss');
+    registerChain();
+    RV.Effects.floatText(p.x, p.z, 'NEAR MISS\n+50', '#7ad9ff', { size: 15 });
+  }
+
+  function registerChain() {
+    if (match.chainTimer > 0) match.chainCount++; else match.chainCount = 1;
+    match.chainTimer = 1.1;
+    if (match.chainCount >= 3 && match.chainCount % 3 === 0) {
+      addScore(match.chainCount * 10 * comboScoreMultiplier());
+      registerCombo('chain');
+      RV.Effects.floatText(match.player.x, match.player.z + 0.6, 'CHAIN x' + match.chainCount, '#c79bff', { size: 17 });
+    }
+  }
+
+  function registerMultiCollect() {
+    var now = match.elapsed;
+    if (now - match.lastCollectTime < 0.35) match.multiCollectStreak++;
+    else match.multiCollectStreak = 1;
+    match.lastCollectTime = now;
+    match.bestMultiCollectThisRun = Math.max(match.bestMultiCollectThisRun, match.multiCollectStreak);
+    if (match.multiCollectStreak >= 2) {
+      addScore(match.multiCollectStreak * 20 * comboScoreMultiplier());
+      registerCombo('multiCollect');
+      RV.Effects.floatText(match.player.x, match.player.z - 0.9, 'MULTI COLLECT x' + match.multiCollectStreak, '#ffce45', { size: 16 });
+    }
+  }
+
+  function updateAdvancedCombo(dt) {
+    checkNearMisses();
+    match.chainTimer = Math.max(0, match.chainTimer - dt);
+  }
+
+  function recordReplaySample(dt) {
+    match._replayAccum += dt;
+    if (match._replayAccum < 0.5) return;
+    match._replayAccum = 0;
+    var p = match.player;
+    match.replay.samples.push({
+      t: Math.round(match.elapsed * 10) / 10, x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100,
+      facing: Math.round(p.facing * 100) / 100, hp: p.hp, score: Math.round(match.score), combo: match.combo.count
+    });
+    if (match.replay.samples.length > 600) match.replay.samples.shift();
+  }
+  function recordReplayMoment(type, label, color) {
+    if (!match || !match.replay) return;
+    match.replay.moments.push({ t: Math.round(match.elapsed * 10) / 10, x: match.player.x, z: match.player.z, type: type, label: label, color: color });
+    if (match.replay.moments.length > 300) match.replay.moments.shift();
   }
 
   function onEventTrigger(phase, key) {
@@ -349,17 +512,19 @@
     if (item.kind === 'coin') {
       RV.Progress.addCoins(item.value);
       match.coinsCollected += item.value;
-      RV.Progress.updateMissionStat('coinsThisPeriod', item.value, 'add');
+      RV.Progress.updateTrackedStat('coinsThisPeriod', item.value, 'add');
       addScore(COIN_SCORE * mult);
       RV.Audio.sfx.coin();
       RV.Effects.floatText(item.x, item.z, '+' + item.value, '#ffce45');
       registerCombo('coin');
+      registerMultiCollect();
     } else if (item.kind === 'gem') {
       RV.Progress.addGems(item.value);
       match.gemsCollected += item.value;
       addScore(GEM_SCORE * mult);
       RV.Audio.sfx.gem();
       RV.Effects.floatText(item.x, item.z, '+' + item.value + ' GEM', '#7ad9ff');
+      registerMultiCollect();
     } else {
       RV.Player.grantPowerup(match.player, item.ptype);
       RV.Audio.sfx.powerup();
@@ -397,8 +562,9 @@
     if (RV.Player.isDashing(p)) {
       match.enemies.forEach(function (e) {
         var d = Math.hypot(e.x - p.x, e.z - p.z);
-        if (d < e.radius + p.radius + 0.3 && e.type !== 'boss') {
-          var killed = RV.Enemy.hit(e, 1);
+        if (d < e.radius + p.radius + 0.3) {
+          var dmg = e.isMainBoss ? (e.weakOpen ? 4 : 1) : 1;
+          var killed = RV.Enemy.hit(e, dmg);
           if (killed) onEnemyDefeated(e);
         }
       });
@@ -468,19 +634,49 @@
     save.bestSurvivalMs = Math.max(save.bestSurvivalMs, survivalMs);
     save.totalSurvivalMs += survivalMs;
     save.abilityUses += match.abilityUses;
+    save.totalDistance += Math.round(match.distance || 0);
+    save.enemiesDefeatedTotal += match.enemiesDefeated;
+    save.perfectDodges += match.perfectDodgesThisRun;
+    save.nearMisses += match.nearMissesThisRun;
+    save.bestChain = Math.max(save.bestChain, match.chainCount);
+    save.bestMultiCollect = Math.max(save.bestMultiCollect, match.bestMultiCollectThisRun);
     if (!match.player.tookDamageThisRun) save.damagelessWins += 1;
+
+    var bossReward = null;
+    if (match.bossMode && match.bossDefeated) {
+      save.bossesDefeated += 1;
+      if (save.boss.defeatedIds.indexOf('overlord') === -1) save.boss.defeatedIds.push('overlord');
+      bossReward = { coins: 800, gems: 40, chest: 'legendary' };
+    }
     RV.Save.save();
 
-    RV.Progress.updateMissionStat('matchesThisPeriod', 1, 'add');
-    RV.Progress.updateMissionStat('scoreSumThisPeriod', Math.round(match.score), 'add');
+    RV.Progress.updateTrackedStat('matchesThisPeriod', 1, 'add');
+    RV.Progress.updateTrackedStat('scoreSumThisPeriod', Math.round(match.score), 'add');
+    RV.Progress.updateDailyChallengeStat('perfectDodgesThisPeriod', match.perfectDodgesThisRun, 'add');
+    RV.Progress.updateDailyChallengeStat('nearMissesThisPeriod', match.nearMissesThisRun, 'add');
+    if (bossReward) {
+      RV.Progress.updateTrackedStat('bossesThisPeriod', 1, 'add');
+      RV.Progress.grantReward(bossReward);
+    }
     RV.Progress.checkAchievements();
     RV.Progress.checkCharacterUnlocks();
     RV.Progress.checkMapUnlocks();
+    RV.Progress.checkTitleUnlocks();
+    RV.Progress.checkBadgeUnlocks();
 
     var xpEarned = Math.round(match.score / 12 + match.elapsed * 2 + match.coinsCollected * 0.3);
     var levelUps = RV.Progress.addXP(xpEarned);
+    RV.Season.addXP(Math.round(xpEarned * 0.8));
 
-    if (isNewBest) RV.Audio.sfx.highScore(); else RV.Audio.sfx.gameOver();
+    if (match.bossDefeated) RV.Audio.sfx.achievement();
+    else if (isNewBest) RV.Audio.sfx.highScore();
+    else RV.Audio.sfx.gameOver();
+
+    lastCompletedReplay = {
+      mapId: match.map.id, mapName: match.map.name, characterId: match.character.id,
+      score: Math.round(match.score), survivalMs: survivalMs,
+      samples: match.replay.samples, moments: match.replay.moments
+    };
 
     fire('gameover', {
       score: Math.round(match.score),
@@ -491,13 +687,17 @@
       xp: xpEarned,
       combo: match.combo.best,
       survivalMs: survivalMs,
-      levelUps: levelUps
+      levelUps: levelUps,
+      bossMode: match.bossMode,
+      bossDefeated: match.bossDefeated,
+      bossReward: bossReward
     });
   }
 
   RV.GameLoop = {
     init: init, start: start, stop: stop, pause: pause, resume: resume, isPaused: isPaused,
     on: on, ARENA_RADIUS: ARENA_RADIUS,
-    getMatch: function () { return match; }
+    getMatch: function () { return match; },
+    getLastReplay: function () { return lastCompletedReplay; }
   };
 })(window.RV || (window.RV = {}));

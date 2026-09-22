@@ -11,7 +11,11 @@
 
   var QUALITY_BUDGET = { low: 40, medium: 140, high: 320 };
 
-  function quality() { return RV.Save.get().settings.graphics || 'medium'; }
+  function quality() {
+    var s = RV.Save.get().settings;
+    if (s.reducedEffects || s.performanceMode) return 'low';
+    return s.graphics || 'medium';
+  }
   function budget() { return QUALITY_BUDGET[quality()] || 140; }
 
   function burst(x, y, color, opts) {
@@ -44,6 +48,7 @@
   }
 
   function shake(mag) {
+    if (RV.Save.get().settings.cameraShakeOff) return;
     shakeMag = Math.max(shakeMag, mag);
     shakeDecay = 4.5;
   }

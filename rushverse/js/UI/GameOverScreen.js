@@ -16,9 +16,12 @@
 
   function onShow(result) {
     lastResult = result;
+    var titleHtml = result.bossDefeated
+      ? '<div class="new-record-badge boss-badge">BOSS DEFEATED!</div>'
+      : (result.isNewBest ? '<div class="new-record-badge">NEW HIGH SCORE!</div>' : '<div class="gameover-title">' + (result.bossMode ? 'BOSS ESCAPED' : 'GAME OVER') + '</div>');
     el.innerHTML =
       '<div class="gameover-card">' +
-        (result.isNewBest ? '<div class="new-record-badge">NEW HIGH SCORE!</div>' : '<div class="gameover-title">GAME OVER</div>') +
+        titleHtml +
         '<div class="score-reveal" id="scoreReveal">0</div>' +
         '<div class="best-line">BEST ' + RV.UI.fmt(result.bestScore) + '</div>' +
         '<div class="result-grid">' +
@@ -27,15 +30,19 @@
           statBlock('BEST COMBO', 'x' + result.combo, '#ff7ad1') +
           statBlock('TIME SURVIVED', RV.UI.fmtTime(result.survivalMs), '#7ad9ff') +
         '</div>' +
+        (result.bossReward ? '<div class="boss-bonus-line">BOSS BONUS: +' + result.bossReward.coins + 'c &nbsp;+' + result.bossReward.gems + 'g &nbsp;+ Legendary Chest</div>' : '') +
         '<button class="menu-btn" id="playAgainBtn">PLAY AGAIN</button>' +
         '<div class="btn-row">' +
+          '<button class="menu-btn secondary" id="saveRunBtn">SAVE RUN</button>' +
           '<button class="menu-btn secondary" id="goHomeBtn">HOME</button>' +
-          '<button class="menu-btn secondary" id="goShopBtn">SHOP</button>' +
         '</div>' +
+        '<button class="menu-btn secondary" id="goShopBtn">SHOP</button>' +
       '</div>';
 
     animateScore(result.score);
-    if (result.isNewBest) RV.Effects && shakeConfetti();
+    if (result.isNewBest || result.bossDefeated) RV.Effects && shakeConfetti();
+
+    renderSavedState();
 
     if (RV.Challenge.isActive()) {
       var challengeResult = RV.Challenge.resolve(result);
@@ -70,6 +77,24 @@
       '<button class="menu-btn" id="challengeCloseBtn">OK</button>'
     );
     card.querySelector('#challengeCloseBtn').addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.closeModal(); });
+  }
+
+  function renderSavedState() {
+    var btn = el.querySelector('#saveRunBtn');
+    if (!btn) return;
+    var saved = RV.Save.get().replay.lastRun;
+    if (saved && saved.score === lastResult.score) {
+      btn.textContent = 'WATCH REPLAY';
+      btn.onclick = function () { RV.Audio.sfx.click(); RV.UI.show('replay'); };
+    } else {
+      btn.textContent = 'SAVE RUN';
+      btn.onclick = function () {
+        RV.Audio.sfx.click();
+        var ok = RV.Replay.saveLastRun();
+        if (ok) { RV.UI.toast('Run saved!', '#7ad9ff'); renderSavedState(); }
+        else RV.UI.toast('Nothing to save yet', '#ff6a6a');
+      };
+    }
   }
 
   function statBlock(label, value, color) {

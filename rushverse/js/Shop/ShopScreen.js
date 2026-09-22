@@ -1,19 +1,21 @@
 /* RUSHVERSE - Shop/ShopScreen.js
-   Five tabs: Characters (unlock via level or coins — never gems-only, so
-   nothing here is pay-to-win), Outfits, Trails, Effects, Emotes. Every card
-   shows rarity, price and a live BUY / EQUIP / OWNED state. */
+   Featured (rotates daily) + Characters (unlock via level or coins — never
+   gems-only, so nothing here is pay-to-win) + Outfits/Trails/Effects/Emotes.
+   Every card shows rarity, price, a live BUY / EQUIP / OWNED state, and a
+   Preview before buying. */
 (function (RV) {
   'use strict';
 
   var el;
   var TABS = [
+    { id: 'featured', label: 'Featured' },
     { id: 'characters', label: 'Characters' },
     { id: 'outfit', label: 'Outfits' },
     { id: 'trail', label: 'Trails' },
     { id: 'effect', label: 'Effects' },
     { id: 'emote', label: 'Emotes' }
   ];
-  var activeTab = 'characters';
+  var activeTab = 'featured';
 
   function build(container) {
     el = document.createElement('div');
@@ -38,15 +40,32 @@
     return { el: el, onShow: render };
   }
 
+  // Deterministic daily rotation — no server needed, everyone on the same
+  // day sees the same featured picks, and they change automatically.
+  function getFeaturedItems() {
+    var dayKey = Math.floor(Date.now() / 86400000);
+    var pool = RV.Data.SHOP_ITEMS.filter(function (it) { return it.price.coins > 0 || it.price.gems > 0; });
+    var picks = [];
+    var seed = dayKey;
+    while (picks.length < 4 && picks.length < pool.length) {
+      seed = (seed * 9301 + 49297) % 233280;
+      var idx = Math.floor((seed / 233280) * pool.length);
+      if (picks.indexOf(pool[idx]) === -1) picks.push(pool[idx]);
+    }
+    return picks;
+  }
+
   function render() {
     el.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === activeTab); });
     var grid = el.querySelector('#shopGrid');
     grid.innerHTML = '';
-    if (activeTab === 'characters') {
+    if (activeTab === 'featured') {
+      getFeaturedItems().forEach(function (it) { grid.appendChild(cosmeticCard(it, true)); });
+    } else if (activeTab === 'characters') {
       RV.Data.CHARACTERS.forEach(function (c) { grid.appendChild(characterCard(c)); });
     } else {
       RV.Data.SHOP_ITEMS.filter(function (it) { return it.cat === activeTab; }).forEach(function (it) {
-        grid.appendChild(cosmeticCard(it));
+        grid.appendChild(cosmeticCard(it, false));
       });
     }
   }
@@ -86,8 +105,7 @@
     } else if (canBuyWithCoins) {
       btn.addEventListener('click', function () {
         if (RV.Progress.spendCoins(c.unlock.value)) {
-          s.characters.owned.push(c.id);
-          RV.Save.save();
+          RV.Progress.unlockCharacter(c.id);
           RV.Audio.sfx.powerup();
           RV.UI.toast(c.name + ' unlocked!', c.color);
           render();
@@ -99,7 +117,7 @@
     return card;
   }
 
-  function cosmeticCard(item) {
+  function cosmeticCard(item, featuredBadge) {
     var s = RV.Save.get();
     var owned = s.skins.owned.indexOf(item.id) !== -1;
     var equipped = s.skins.equipped[item.cat] === item.id;
@@ -108,14 +126,21 @@
     var card = document.createElement('div');
     card.className = 'item-card rarity-border-' + item.rarity;
     card.innerHTML =
+      (featuredBadge ? '<div class="featured-tag">FEATURED</div>' : '') +
       '<div class="item-preview" style="background:linear-gradient(160deg,' + item.color + ',#0a0e16)"></div>' +
       '<div class="item-name">' + item.name + '</div>' +
       '<div class="item-rarity rarity-' + item.rarity + '">' + item.rarity.toUpperCase() + '</div>' +
       (owned
         ? '<button class="item-btn ' + (equipped ? 'owned-btn' : 'buy-btn') + '">' + (equipped ? 'EQUIPPED' : 'EQUIP') + '</button>'
-        : '<button class="item-btn buy-btn">BUY — ' + priceLabel + '</button>');
+        : '<div class="item-btn-row">' +
+            '<button class="item-btn preview-btn">PREVIEW</button>' +
+            '<button class="item-btn buy-btn">BUY — ' + priceLabel + '</button>' +
+          '</div>');
 
-    var btn = card.querySelector('.item-btn');
+    var previewBtn = card.querySelector('.preview-btn');
+    if (previewBtn) previewBtn.addEventListener('click', function () { RV.Audio.sfx.click(); openPreview(item); });
+
+    var btn = card.querySelector('.buy-btn, .owned-btn');
     if (owned && !equipped) {
       btn.addEventListener('click', function () {
         RV.Audio.sfx.click();
@@ -126,8 +151,7 @@
       btn.addEventListener('click', function () {
         var ok = item.price.gems ? RV.Progress.spendGems(item.price.gems) : RV.Progress.spendCoins(item.price.coins || 0);
         if (ok) {
-          s.skins.owned.push(item.id);
-          RV.Save.save();
+          RV.Progress.acquireSkin(item.id);
           RV.Audio.sfx.powerup();
           RV.UI.toast(item.name + ' purchased!', item.color);
           render();
@@ -137,6 +161,62 @@
       });
     }
     return card;
+  }
+
+  // ---------- Preview: shows the item on the equipped character, rotatable ----------
+  var previewFacing = 0;
+  function openPreview(item) {
+    previewFacing = 0;
+    var card = RV.UI.modal(
+      '<div class="levelup-title" style="font-size:16px">' + item.name + '</div>' +
+      '<canvas id="previewCanvas" width="240" height="240" class="preview-canvas"></canvas>' +
+      '<div class="preview-rotate-row">' +
+        '<button class="photo-btn" id="prevRotL">&#8634;</button>' +
+        '<button class="photo-btn" id="prevRotR">&#8635;</button>' +
+      '</div>' +
+      '<button class="menu-btn" id="previewCloseBtn">CLOSE</button>'
+    );
+    var canvas = card.querySelector('#previewCanvas');
+    drawPreview(canvas, item);
+    card.querySelector('#prevRotL').addEventListener('click', function () { previewFacing -= 0.5; drawPreview(canvas, item); });
+    card.querySelector('#prevRotR').addEventListener('click', function () { previewFacing += 0.5; drawPreview(canvas, item); });
+    card.querySelector('#previewCloseBtn').addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.closeModal(); });
+  }
+
+  function drawPreview(canvas, item) {
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var grad = ctx.createRadialGradient(120, 190, 10, 120, 190, 120);
+    grad.addColorStop(0, 'rgba(124,77,255,0.25)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    var s = RV.Save.get();
+    var charDef = RV.Data.getCharacter(s.characters.equipped) || RV.Data.CHARACTERS[0];
+    var outfitColor = item.cat === 'outfit' ? item.color : (RV.Data.getShopItem(s.skins.equipped.outfit) || {}).color;
+
+    var fakePlayer = {
+      x: 0, z: 0, facing: previewFacing, radius: 0.55, hp: 3, maxHp: 3, character: charDef,
+      dashTimer: 0, swipeTimer: 0, jumpTimer: 0, invulnTimer: 0, abilityCooldown: 1, abilityActiveTimer: 0,
+      status: { shieldTimer: 0, speedTimer: 0, magnetTimer: item.cat === 'effect' ? 1 : 0, multiplierTimer: 0, multiplierValue: 1, slowedTimer: 0, secondChance: false }
+    };
+    var project = function () { return { x: 120, y: 190, scale: 2.6, cull: false }; };
+    RV.Player.draw(ctx, fakePlayer, project, { outfitColor: outfitColor });
+
+    if (item.cat === 'trail') {
+      ctx.strokeStyle = item.color;
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      for (var i = 0; i < 6; i++) {
+        var a = 120 - i * 14 * Math.cos(previewFacing);
+        var b = 190 + 10 + i * 10;
+        ctx.lineTo(a, b);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
   }
 
   RV.ShopScreen = { build: build };

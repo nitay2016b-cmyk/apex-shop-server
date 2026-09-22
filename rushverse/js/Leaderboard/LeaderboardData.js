@@ -70,13 +70,17 @@
     if (code === s.playerCode) return { error: "That's your own code!" };
     if (s.friends.some(function (f) { return f.code === code; })) return { error: 'Already friends' };
     var seed = code.split('').reduce(function (a, c) { return a + c.charCodeAt(0); }, 0);
-    var r1 = seededRandom(seed), r2 = seededRandom(seed * 2.1);
+    var r1 = seededRandom(seed), r2 = seededRandom(seed * 2.1), r3 = seededRandom(seed * 5.7);
+    var statusRoll = seededRandom(seed * 9.3);
+    var status = statusRoll > 0.66 ? 'online' : statusRoll > 0.33 ? 'inGame' : 'offline';
+    var skinPool = RV.Data.SHOP_ITEMS.filter(function (it) { return it.cat === 'outfit'; });
     var friend = {
       code: code,
       name: NAME_PARTS1[Math.floor(r1 * NAME_PARTS1.length)] + NAME_PARTS2[Math.floor(r2 * NAME_PARTS2.length)],
       level: Math.max(1, Math.round(3 + r1 * 40)),
       best: Math.round(500 + r2 * 20000),
-      online: r1 > 0.4
+      status: status,
+      skinName: skinPool[Math.floor(r3 * skinPool.length)].name
     };
     s.friends.push(friend);
     RV.Save.save();

@@ -17,6 +17,7 @@
     var isConsecutive = lastDay === today - 1;
     var newStreak = isConsecutive ? streak + 1 : 1;
     if (newStreak > 7) newStreak = 1;
+    RV.Progress.addNotification('DAILY REWARD READY', 'event');
     show(newStreak);
   }
 
@@ -28,8 +29,10 @@
       return '<div class="' + cls + '"><div class="daily-day">DAY ' + d.day + '</div><div class="daily-icon">' + dailyIcon(d) + '</div></div>';
     }).join('');
 
+    var currentStreak = RV.Save.get().dailyReward.streak || 0;
     var card = RV.UI.modal(
       '<div class="levelup-title">DAILY REWARD</div>' +
+      (currentStreak > 0 ? '<div class="profile-streak" style="margin-bottom:10px">&#128293; ' + currentStreak + ' DAY STREAK</div>' : '') +
       '<div class="daily-strip">' + row + '</div>' +
       '<div class="daily-claim-label">' + label + '</div>' +
       '<button class="menu-btn" id="dailyClaimBtn">CLAIM</button>',

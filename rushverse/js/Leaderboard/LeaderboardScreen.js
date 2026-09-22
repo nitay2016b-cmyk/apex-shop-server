@@ -92,24 +92,61 @@
     return podium + '<div class="lb-list">' + rest + playerRow + '</div>';
   }
 
+  var STATUS_META = {
+    online: { color: '#7dff5a', label: 'ONLINE' },
+    inGame: { color: '#7ad9ff', label: 'IN GAME' },
+    offline: { color: '#6c7688', label: 'OFFLINE' }
+  };
+
   function rowHtml(rank, e, category) {
-    var challengeBtn = (category === 'friends' && !e.isPlayer)
-      ? '<button class="challenge-btn" data-name="' + e.name + '">CHALLENGE</button>' : '';
+    var actions = '';
+    var statusDot = '';
+    if (category === 'friends' && !e.isPlayer) {
+      var meta = STATUS_META[e.status || 'offline'];
+      statusDot = '<span class="status-dot" style="background:' + meta.color + '" title="' + meta.label + '"></span>';
+      actions = '<div class="friend-actions">' +
+        '<button class="friend-action-btn" data-a="invite" data-name="' + e.name + '" title="Invite to Party">&#128101;</button>' +
+        '<button class="friend-action-btn" data-a="challenge" data-name="' + e.name + '" title="Challenge">&#9876;</button>' +
+        '<button class="friend-action-btn" data-a="profile" data-name="' + e.name + '" title="View Profile">&#128100;</button>' +
+        '</div>';
+    }
     return '<div class="lb-row ' + (e.isPlayer ? 'is-player' : '') + '">' +
+      statusDot +
       '<div class="lb-rank">#' + rank + '</div>' +
       '<div class="lb-name">' + (e.isPlayer ? 'YOU' : e.name) + '</div>' +
-      '<div class="lb-score">' + RV.UI.fmt(e.score) + '</div>' + challengeBtn + '</div>';
+      '<div class="lb-score">' + RV.UI.fmt(e.score) + '</div>' + actions + '</div>';
   }
 
   function bindChallengeButtons() {
-    el.querySelectorAll('.challenge-btn').forEach(function (btn) {
+    el.querySelectorAll('.friend-action-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        RV.Audio.sfx.click();
         var s = RV.Save.get();
         var friend = s.friends.filter(function (f) { return f.name === btn.dataset.name; })[0];
         if (!friend) return;
-        openChallengeModal(friend);
+        if (btn.dataset.a === 'challenge') openChallengeModal(friend);
+        else if (btn.dataset.a === 'profile') openFriendProfileModal(friend);
+        else if (btn.dataset.a === 'invite') {
+          var res = RV.Party.invite(friend);
+          RV.UI.toast(res.ok ? 'Invite sent to ' + friend.name : res.error, res.ok ? '#7dff5a' : '#ff6a6a');
+        }
       });
     });
+  }
+
+  function openFriendProfileModal(friend) {
+    var meta = STATUS_META[friend.status || 'offline'];
+    var card = RV.UI.modal(
+      '<div class="levelup-title">' + friend.name.toUpperCase() + '</div>' +
+      '<div class="stats-grid" style="text-align:left">' +
+        '<div class="stat-row"><span>Level</span><span class="stat-row-val">' + friend.level + '</span></div>' +
+        '<div class="stat-row"><span>Best Score</span><span class="stat-row-val">' + RV.UI.fmt(friend.best) + '</span></div>' +
+        '<div class="stat-row"><span>Skin</span><span class="stat-row-val">' + (friend.skinName || 'Recruit') + '</span></div>' +
+        '<div class="stat-row"><span>Status</span><span class="stat-row-val" style="color:' + meta.color + '">' + meta.label + '</span></div>' +
+      '</div>' +
+      '<button class="menu-btn" id="friendProfileCloseBtn" style="margin-top:14px">CLOSE</button>'
+    );
+    card.querySelector('#friendProfileCloseBtn').addEventListener('click', function () { RV.UI.closeModal(); });
   }
 
   function openChallengeModal(friend) {

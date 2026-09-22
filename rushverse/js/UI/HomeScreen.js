@@ -25,6 +25,8 @@
         '<div class="logo-title">RUSH<span class="logo-accent">VERSE</span></div>' +
         '<div class="logo-sub">ARENA ACTION</div>' +
       '</div>' +
+      '<div class="season-bar" id="seasonBar"></div>' +
+      '<div class="quick-row" id="quickRow"></div>' +
       '<div class="picker-row" id="charPicker">' +
         '<button class="picker-arrow" data-dir="-1" data-target="char">&#10094;</button>' +
         '<div class="picker-card" id="charCard"></div>' +
@@ -95,10 +97,12 @@
     var m = maps[mapIndex] || maps[0];
 
     document.getElementById('charCard').innerHTML =
-      '<div class="char-avatar" style="background:radial-gradient(circle at 35% 30%,' + c.accent + ',' + c.color + ')"></div>' +
+      '<div class="char-avatar" id="charAvatarEmote" style="background:radial-gradient(circle at 35% 30%,' + c.accent + ',' + c.color + ')"></div>' +
       '<div class="picker-name">' + c.name + '</div>' +
       '<div class="picker-sub rarity-' + c.rarity + '">' + c.rarity.toUpperCase() + '</div>' +
-      '<div class="picker-desc">' + c.ability.name + ' — ' + c.ability.desc + '</div>';
+      '<div class="picker-desc">' + c.ability.name + ' — ' + c.ability.desc + '</div>' +
+      '<div class="emote-hint">Tap to emote</div>';
+    document.getElementById('charAvatarEmote').addEventListener('click', playEquippedEmote);
 
     document.getElementById('mapCard').innerHTML =
       '<div class="map-avatar" style="background:linear-gradient(160deg,' + m.palette.sky2 + ',' + m.palette.floor1 + ')">' +
@@ -110,8 +114,54 @@
     document.getElementById('bestScoreLine').textContent = 'BEST SCORE  ' + RV.UI.fmt(s.bestScore);
   }
 
+  function renderSeasonBar() {
+    var season = RV.Season.getState();
+    var bar = document.getElementById('seasonBar');
+    bar.innerHTML =
+      '<div class="season-bar-top"><span class="season-name">' + season.name + '</span>' +
+      '<span class="season-time">TIME LEFT: ' + season.daysLeft + ' DAYS</span></div>' +
+      '<div class="progress-bar season-progress"><div class="progress-fill" style="width:' + Math.round(season.pct * 100) + '%"></div></div>' +
+      '<div class="season-level-label">BATTLE PASS &middot; LEVEL ' + season.level + ' / ' + season.maxLevel + '</div>';
+    bar.onclick = function () { RV.Audio.sfx.click(); RV.UI.show('battlepass'); };
+  }
+
+  var QUICK_ITEMS = [
+    { id: 'battlepass', icon: '&#127942;', label: 'PASS' },
+    { id: 'events', icon: '&#127903;', label: 'EVENTS' },
+    { id: 'boss', icon: '&#128128;', label: 'BOSS' },
+    { id: 'profile', icon: '&#128100;', label: 'ME' },
+    { id: 'party', icon: '&#128101;', label: 'PARTY' }
+  ];
+  function renderQuickRow() {
+    var row = document.getElementById('quickRow');
+    row.innerHTML = QUICK_ITEMS.map(function (q) {
+      return '<button class="quick-btn" data-screen="' + q.id + '"><span class="quick-icon">' + q.icon + '</span><span class="quick-label">' + q.label + '</span></button>';
+    }).join('');
+    row.querySelectorAll('.quick-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { RV.Audio.sfx.click(); RV.UI.show(btn.dataset.screen); });
+    });
+  }
+
+  var EMOTE_ANIM = {
+    emote_default: 'emote-wave', emote_flex: 'emote-flex', emote_spin: 'emote-spin',
+    emote_bow: 'emote-bow', emote_starburst: 'emote-starburst'
+  };
+  function playEquippedEmote() {
+    RV.Audio.resume(); RV.Audio.sfx.click();
+    var s = RV.Save.get();
+    var equippedId = s.skins.equipped.emote;
+    var anim = EMOTE_ANIM[equippedId] || 'emote-wave';
+    var avatar = document.getElementById('charAvatarEmote');
+    if (!avatar) return;
+    avatar.classList.remove('emote-wave', 'emote-flex', 'emote-spin', 'emote-bow', 'emote-starburst');
+    void avatar.offsetWidth;
+    avatar.classList.add(anim);
+  }
+
   function onShow() {
     renderCards();
+    renderSeasonBar();
+    renderQuickRow();
   }
 
   RV.HomeScreen = { build: build };

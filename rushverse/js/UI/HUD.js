@@ -43,10 +43,12 @@
     return { el: el };
   }
 
-  function startMatch(characterId, mapId, skin) {
+  function startMatch(characterId, mapId, skin, extra) {
     paused = false;
     el.querySelector('#pauseMenu').classList.remove('active');
-    RV.GameLoop.start({ characterId: characterId, mapId: mapId, skin: skin });
+    var opts = { characterId: characterId, mapId: mapId, skin: skin };
+    if (extra) for (var k in extra) opts[k] = extra[k];
+    RV.GameLoop.start(opts);
   }
 
   function togglePause() {
@@ -63,14 +65,19 @@
       '<div class="pause-card">' +
         '<div class="pause-title">PAUSED</div>' +
         '<button class="menu-btn" id="resumeBtn">RESUME</button>' +
+        '<button class="menu-btn secondary" id="photoModeBtn">PHOTO MODE</button>' +
         '<button class="menu-btn" id="restartBtn">RESTART</button>' +
         '<button class="menu-btn secondary" id="homeBtn">HOME</button>' +
       '</div>';
     m.querySelector('#resumeBtn').addEventListener('click', togglePause);
+    m.querySelector('#photoModeBtn').addEventListener('click', function () {
+      RV.Audio.sfx.click();
+      RV.PhotoMode.enter(el);
+    });
     m.querySelector('#restartBtn').addEventListener('click', function () {
       var match = RV.GameLoop.getMatch();
       togglePause();
-      startMatch(match.character.id, match.map.id, match.skin);
+      startMatch(match.character.id, match.map.id, match.skin, { bossMode: match.bossMode });
     });
     m.querySelector('#homeBtn').addEventListener('click', function () {
       RV.GameLoop.stop();

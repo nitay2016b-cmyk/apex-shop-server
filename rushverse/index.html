@@ -10,9 +10,39 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- Global error boundary: loaded before any game script, so a genuine
+       crash anywhere shows a friendly retry screen instead of a blank page
+       or a raw stack trace. -->
+  <script>
+    (function () {
+      var shown = false;
+      function showErrorScreen() {
+        if (shown) return;
+        shown = true;
+        var boot = document.getElementById('bootLoader');
+        if (boot) boot.classList.add('hidden');
+        var el = document.createElement('div');
+        el.id = 'crashScreen';
+        el.innerHTML =
+          '<div class="crash-card">' +
+            '<div class="crash-title">Something went wrong.</div>' +
+            '<div class="crash-desc">Please try again.</div>' +
+            '<button class="menu-btn" id="crashRetryBtn">RETRY</button>' +
+          '</div>';
+        document.body.appendChild(el);
+        document.getElementById('crashRetryBtn').addEventListener('click', function () {
+          window.location.reload();
+        });
+      }
+      window.addEventListener('error', showErrorScreen);
+      window.addEventListener('unhandledrejection', showErrorScreen);
+    })();
+  </script>
+
   <div id="bootLoader">
     <div class="boot-title">RUSH<span style="color:#00e5ff">VERSE</span></div>
     <div class="boot-spinner"></div>
+    <div class="boot-tip" id="bootTip"></div>
   </div>
 
   <div id="app">
@@ -28,6 +58,7 @@
   <script src="js/Data/SaveSystem.js"></script>
   <script src="js/Data/GameData.js"></script>
   <script src="js/Data/Progression.js"></script>
+  <script src="js/Data/Season.js"></script>
 
   <!-- Audio / Effects -->
   <script src="js/Audio/AudioManager.js"></script>
@@ -44,15 +75,23 @@
   <script src="js/Game/Combo.js"></script>
   <script src="js/Game/Events.js"></script>
   <script src="js/Game/GameLoop.js"></script>
+  <script src="js/Game/Replay.js"></script>
 
   <!-- UI shell -->
   <script src="js/UI/UIManager.js"></script>
+  <script src="js/UI/Notifications.js"></script>
+  <script src="js/UI/PhotoMode.js"></script>
   <script src="js/UI/HomeScreen.js"></script>
   <script src="js/UI/HUD.js"></script>
   <script src="js/UI/GameOverScreen.js"></script>
   <script src="js/UI/LevelUpModal.js"></script>
   <script src="js/UI/TutorialScreen.js"></script>
   <script src="js/UI/CollectionScreen.js"></script>
+  <script src="js/UI/BattlePassScreen.js"></script>
+  <script src="js/UI/EventsScreen.js"></script>
+  <script src="js/UI/BossScreen.js"></script>
+  <script src="js/UI/ProfileScreen.js"></script>
+  <script src="js/UI/ReplayScreen.js"></script>
 
   <!-- Feature screens -->
   <script src="js/Shop/ShopScreen.js"></script>
@@ -60,7 +99,9 @@
   <script src="js/Missions/DailyReward.js"></script>
   <script src="js/Leaderboard/LeaderboardData.js"></script>
   <script src="js/Leaderboard/Challenge.js"></script>
+  <script src="js/Leaderboard/Party.js"></script>
   <script src="js/Leaderboard/LeaderboardScreen.js"></script>
+  <script src="js/UI/PartyScreen.js"></script>
   <script src="js/Settings/SettingsScreen.js"></script>
 
   <script src="js/main.js"></script>

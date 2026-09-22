@@ -20,12 +20,24 @@
     el.innerHTML =
       '<div class="screen-title">SETTINGS</div>' +
       '<div class="settings-list">' +
+        '<div class="settings-section-title">SOUND</div>' +
+        sliderRow('Master Volume', 'masterVolume', s.masterVolume) +
         sliderRow('Music Volume', 'musicVolume', s.musicVolume) +
         sliderRow('SFX Volume', 'sfxVolume', s.sfxVolume) +
-        segmentRow('Graphics', 'graphics', s.graphics, ['low', 'medium', 'high']) +
+        sliderRow('UI Volume', 'uiVolume', s.uiVolume) +
+        sliderRow('Ambience Volume', 'ambienceVolume', s.ambienceVolume) +
         toggleRow('Vibration', 'vibration', s.vibration) +
+        '<div class="settings-section-title">DISPLAY & PERFORMANCE</div>' +
+        toggleRow('Performance Mode', 'performanceMode', s.performanceMode) +
+        segmentRow('Graphics', 'graphics', s.graphics, ['low', 'medium', 'high']) +
         segmentRow('Language', 'language', s.language, ['en', 'he'], LANG_LABELS) +
         segmentRow('Joystick Side', 'joystickSide', s.joystickSide, ['left', 'right']) +
+        '<div class="settings-section-title">ACCESSIBILITY</div>' +
+        segmentRow('Text Size', 'textSize', s.textSize, ['normal', 'large']) +
+        toggleRow('Reduced Effects', 'reducedEffects', s.reducedEffects) +
+        toggleRow('High Contrast UI', 'highContrast', s.highContrast) +
+        toggleRow('Disable Camera Shake', 'cameraShakeOff', s.cameraShakeOff) +
+        toggleRow('Colorblind-Friendly Icons', 'colorblindMode', s.colorblindMode) +
         '<div class="settings-section-title">ACCOUNT</div>' +
         '<div class="settings-row"><span>Player Code</span><span class="stat-row-val">' + save.playerCode + '</span></div>' +
         '<div class="settings-row"><span>Level</span><span class="stat-row-val">' + RV.Progress.xpProgress().level + '</span></div>' +
@@ -47,6 +59,7 @@
         save2.settings[btn.dataset.key] = btn.dataset.value;
         RV.Save.save();
         if (btn.dataset.key === 'joystickSide') RV.Controls.applySide();
+        RV.UI.applyAccessibility();
         render();
       });
     });
@@ -56,6 +69,12 @@
         var save2 = RV.Save.get();
         save2.settings[t.dataset.key] = !save2.settings[t.dataset.key];
         RV.Save.save();
+        if (t.dataset.key === 'performanceMode' && save2.settings.performanceMode) {
+          save2.settings.graphics = 'low';
+          save2.settings.reducedEffects = true;
+          RV.Save.save();
+        }
+        RV.UI.applyAccessibility();
         render();
       });
     });

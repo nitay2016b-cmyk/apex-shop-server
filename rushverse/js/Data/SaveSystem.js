@@ -7,7 +7,7 @@
   'use strict';
 
   var STORAGE_KEY = 'rushverse_save_v1';
-  var SAVE_VERSION = 1;
+  var SAVE_VERSION = 2;
 
   function uid(prefix) {
     var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -37,6 +37,15 @@
       bestSurvivalMs: 0,
       damagelessWins: 0,
       abilityUses: 0,
+      // extended stats (added for deeper Profile/Stats panel)
+      totalDistance: 0,
+      enemiesDefeatedTotal: 0,
+      bossesDefeated: 0,
+      perfectDodges: 0,
+      nearMisses: 0,
+      bestChain: 0,
+      bestMultiCollect: 0,
+      replaysSaved: 0,
 
       characters: {
         owned: ['rush'],
@@ -59,9 +68,47 @@
       missions: {
         daily: null,
         weekly: null,
+        season: null,
         dailyResetAt: 0,
-        weeklyResetAt: 0
+        weeklyResetAt: 0,
+        seasonResetAt: 0
       },
+      dailyChallenges: {
+        list: null,
+        resetAt: 0
+      },
+      quests: {
+        currentIndex: 0,
+        claimedFinal: false
+      },
+      titles: {
+        owned: ['rookie'],
+        equipped: 'rookie'
+      },
+      badges: { owned: [] },
+      avatar: 'avatar_default',
+
+      season: {
+        // seasonId is recomputed from real time (see Season.js); xp/claims are
+        // reset automatically when the computed season id changes.
+        seasonId: null,
+        xp: 0,
+        claimedFree: [],
+        claimedPremium: [],
+        premiumOwned: false
+      },
+
+      boss: { defeatedIds: [] },
+      metaEvent: { eventId: null, progress: {}, claimed: [] },
+
+      party: { code: null, members: [] },
+      privateMatch: { lastRoomCode: null },
+
+      notifications: { items: [], unreadCount: 0 },
+
+      replay: { lastRun: null },
+
+      discoveredItems: [],
 
       dailyReward: {
         streak: 0,
@@ -74,12 +121,21 @@
       friends: [],
 
       settings: {
+        masterVolume: 1,
         musicVolume: 0.6,
         sfxVolume: 0.8,
+        uiVolume: 0.8,
+        ambienceVolume: 0.5,
         graphics: 'medium',
         vibration: true,
         language: 'en',
-        joystickSide: 'left'
+        joystickSide: 'left',
+        textSize: 'normal',
+        reducedEffects: false,
+        highContrast: false,
+        cameraShakeOff: false,
+        colorblindMode: false,
+        performanceMode: false
       },
 
       tutorialDone: false,

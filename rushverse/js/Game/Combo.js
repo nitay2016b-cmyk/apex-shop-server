@@ -8,7 +8,10 @@
   var DECAY_WINDOW = 3.0;
   var MILESTONES = [2, 5, 10, 25, 50, 75, 100];
 
-  var WEIGHTS = { coin: 1, dodge: 1, kill: 2, ability: 1, perfectDash: 2 };
+  var WEIGHTS = {
+    coin: 1, dodge: 1, kill: 2, ability: 1,
+    perfectDodge: 2, nearMiss: 1, chain: 1, multiCollect: 2, abilityCombo: 2
+  };
 
   function create() {
     return { count: 0, timer: 0, best: 0, lastMilestoneHit: 0 };

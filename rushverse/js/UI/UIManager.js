@@ -18,6 +18,9 @@
   }
 
   function show(name, opts) {
+    if (current && current !== name && screens[current] && screens[current].onHide) {
+      screens[current].onHide();
+    }
     Object.keys(screens).forEach(function (key) {
       var el = screens[key].el;
       if (!el) return;
@@ -36,13 +39,17 @@
   function renderHeader() {
     var s = RV.Save.get();
     var prog = RV.Progress.xpProgress();
+    var unread = s.notifications.unreadCount;
     headerEl.innerHTML =
       '<div class="curr-pill coin-pill"><span class="curr-icon">&#9679;</span>' + fmt(s.coins) + '</div>' +
       '<div class="curr-pill gem-pill"><span class="curr-icon">&#9670;</span>' + fmt(s.gems) + '</div>' +
       '<div class="level-block">' +
         '<div class="level-badge">LV ' + prog.level + '</div>' +
         '<div class="xp-bar"><div class="xp-fill" style="width:' + Math.round(prog.pct * 100) + '%"></div></div>' +
-      '</div>';
+      '</div>' +
+      '<button class="bell-btn" id="notifBellBtn">&#128276;' + (unread > 0 ? '<span class="bell-badge">' + unread + '</span>' : '') + '</button>';
+    var bell = document.getElementById('notifBellBtn');
+    if (bell) bell.addEventListener('click', function () { RV.Audio.sfx.click(); RV.Notifications.open(); });
   }
 
   function fmt(n) {
@@ -102,12 +109,24 @@
     var backdrop = layer.querySelector('.modal-backdrop');
     if (!backdrop) return;
     backdrop.classList.remove('show');
-    setTimeout(function () { layer.classList.remove('active'); layer.innerHTML = ''; }, 220);
+    // Stop intercepting taps the instant the close starts, not after the
+    // 220ms fade finishes — otherwise a quick follow-up tap (e.g. closing a
+    // preview then immediately tapping a nav button) can land on the
+    // still-present backdrop instead of the real UI underneath it.
+    layer.classList.remove('active');
+    setTimeout(function () { layer.innerHTML = ''; }, 220);
+  }
+
+  function applyAccessibility() {
+    var s = RV.Save.get().settings;
+    document.body.classList.toggle('text-large', s.textSize === 'large');
+    document.body.classList.toggle('high-contrast', !!s.highContrast);
+    document.body.classList.toggle('colorblind-mode', !!s.colorblindMode);
   }
 
   RV.UI = {
     registerScreen: registerScreen, init: init, show: show, getCurrent: getCurrent,
     renderHeader: renderHeader, fmt: fmt, fmtTime: fmtTime, rarityColor: rarityColor,
-    toast: toast, modal: modal, closeModal: closeModal
+    toast: toast, modal: modal, closeModal: closeModal, applyAccessibility: applyAccessibility
   };
 })(window.RV || (window.RV = {}));

@@ -1,18 +1,29 @@
 /* RUSHVERSE - UI/CollectionScreen.js
-   COLLECTION button: Achievements progress, Chest inventory (opens with
-   earned keys, fun reveal animation), and lifetime stats. */
+   The Collection Book: every cosmetic/character/ability/badge category the
+   game tracks, with locked entries shown dark with a "?" (an
+   'itemDiscovered' toast fires elsewhere the moment one unlocks) — plus the
+   original Achievements, Chest inventory and lifetime Stats panel. */
 (function (RV) {
   'use strict';
 
   var el;
-  var TABS = ['Achievements', 'Chests', 'Stats'];
-  var activeTab = 'Achievements';
+  var BOOK_TABS = [
+    { id: 'Characters', cat: 'character' },
+    { id: 'Skins', cat: 'outfit' },
+    { id: 'Trails', cat: 'trail' },
+    { id: 'Effects', cat: 'effect' },
+    { id: 'Emotes', cat: 'emote' },
+    { id: 'Abilities', cat: 'ability' },
+    { id: 'Badges', cat: 'badge' }
+  ];
+  var TABS = BOOK_TABS.map(function (t) { return t.id; }).concat(['Achievements', 'Chests', 'Stats']);
+  var activeTab = 'Characters';
 
   function build(container) {
     el = document.createElement('div');
     el.className = 'screen collection-screen';
     el.innerHTML =
-      '<div class="screen-title">COLLECTION</div>' +
+      '<div class="screen-title">COLLECTION BOOK</div>' +
       '<div class="tab-row" id="collTabs"></div>' +
       '<div class="collection-body" id="collBody"></div>';
     container.appendChild(el);
@@ -30,10 +41,56 @@
   function render() {
     el.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === activeTab); });
     var body = el.querySelector('#collBody');
-    if (activeTab === 'Achievements') body.innerHTML = renderAchievements();
+    var bookTab = BOOK_TABS.filter(function (t) { return t.id === activeTab; })[0];
+    if (bookTab) { body.innerHTML = renderBook(bookTab.cat); return; }
+    if (activeTab === 'Achievements') { body.innerHTML = renderAchievements(); bindAchievementButtons(); }
     else if (activeTab === 'Chests') { body.innerHTML = renderChests(); bindChestButtons(); }
     else body.innerHTML = renderStats();
-    if (activeTab === 'Achievements') bindAchievementButtons();
+  }
+
+  function lockedCard(rarityClass) {
+    return '<div class="item-card book-locked ' + (rarityClass || '') + '">' +
+      '<div class="item-preview book-locked-preview">?</div>' +
+      '<div class="item-name">???</div>' +
+      '<div class="item-desc">Locked</div></div>';
+  }
+
+  function renderBook(cat) {
+    var s = RV.Save.get();
+    var cards;
+    if (cat === 'character') {
+      cards = RV.Data.CHARACTERS.map(function (c) {
+        var owned = s.characters.owned.indexOf(c.id) !== -1;
+        if (!owned) return lockedCard('rarity-border-' + c.rarity);
+        return '<div class="item-card rarity-border-' + c.rarity + '">' +
+          '<div class="item-preview" style="background:radial-gradient(circle at 35% 30%,' + c.accent + ',' + c.color + ')"></div>' +
+          '<div class="item-name">' + c.name + '</div><div class="item-rarity rarity-' + c.rarity + '">' + c.rarity.toUpperCase() + '</div></div>';
+      });
+    } else if (cat === 'ability') {
+      cards = RV.Data.CHARACTERS.map(function (c) {
+        var owned = s.characters.owned.indexOf(c.id) !== -1;
+        if (!owned) return lockedCard();
+        return '<div class="item-card">' +
+          '<div class="item-preview" style="background:linear-gradient(160deg,' + c.color + ',#0a0e16)"></div>' +
+          '<div class="item-name">' + c.ability.name + '</div><div class="item-desc">' + c.ability.desc + '</div></div>';
+      });
+    } else if (cat === 'badge') {
+      cards = RV.Progress.getBadges().map(function (b) {
+        if (!b.owned) return lockedCard() ;
+        return '<div class="item-card rarity-border-legendary">' +
+          '<div class="item-preview book-badge-preview">&#127894;</div>' +
+          '<div class="item-name">' + b.name + '</div><div class="item-desc">Unlocked</div></div>';
+      });
+    } else {
+      cards = RV.Data.SHOP_ITEMS.filter(function (it) { return it.cat === cat; }).map(function (it) {
+        var owned = s.skins.owned.indexOf(it.id) !== -1;
+        if (!owned) return lockedCard('rarity-border-' + it.rarity);
+        return '<div class="item-card rarity-border-' + it.rarity + '">' +
+          '<div class="item-preview" style="background:linear-gradient(160deg,' + it.color + ',#0a0e16)"></div>' +
+          '<div class="item-name">' + it.name + '</div><div class="item-rarity rarity-' + it.rarity + '">' + it.rarity.toUpperCase() + '</div></div>';
+      });
+    }
+    return '<div class="item-grid">' + cards.join('') + '</div>';
   }
 
   function renderAchievements() {
@@ -99,14 +156,22 @@
   function renderStats() {
     var s = RV.Save.get();
     var rows = [
+      ['Total Runs', RV.UI.fmt(s.gamesPlayed)],
       ['Best Score', RV.UI.fmt(s.bestScore)],
+      ['Total Distance', RV.UI.fmt(Math.round(s.totalDistance)) + ' m'],
       ['Lifetime Coins', RV.UI.fmt(s.lifetimeCoins)],
-      ['Games Played', RV.UI.fmt(s.gamesPlayed)],
+      ['Enemies Defeated', RV.UI.fmt(s.enemiesDefeatedTotal)],
+      ['Bosses Defeated', RV.UI.fmt(s.bossesDefeated)],
       ['Best Combo', 'x' + s.bestCombo],
+      ['Best Chain', 'x' + s.bestChain],
+      ['Best Multi Collect', 'x' + s.bestMultiCollect],
+      ['Perfect Dodges', RV.UI.fmt(s.perfectDodges)],
+      ['Near Misses', RV.UI.fmt(s.nearMisses)],
       ['Best Survival', RV.UI.fmtTime(s.bestSurvivalMs)],
       ['Total Play Time', RV.UI.fmtTime(s.totalSurvivalMs)],
       ['Damageless Wins', RV.UI.fmt(s.damagelessWins)],
       ['Ability Uses', RV.UI.fmt(s.abilityUses)],
+      ['Replays Saved', RV.UI.fmt(s.replaysSaved)],
       ['Player Code', s.playerCode]
     ];
     return '<div class="stats-grid">' + rows.map(function (r) {

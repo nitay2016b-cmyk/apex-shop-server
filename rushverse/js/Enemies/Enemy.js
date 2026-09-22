@@ -160,6 +160,15 @@
       ctx.fillRect(pos.x - barW / 2, pos.y - size - 16 * scale, barW, 6 * scale);
       ctx.fillStyle = '#ff2f5f';
       ctx.fillRect(pos.x - barW / 2, pos.y - size - 16 * scale, barW * Math.max(0, e.hp / e.maxHp), 6 * scale);
+      if (e.weakOpen) {
+        ctx.strokeStyle = '#ffce45';
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(performance.now() / 80);
+        ctx.lineWidth = 3 * scale;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, size + 14 * scale, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
     }
   }
 

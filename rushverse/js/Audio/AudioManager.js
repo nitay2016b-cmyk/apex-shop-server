@@ -6,7 +6,7 @@
   'use strict';
 
   var ctx = null;
-  var musicGain, sfxGain, masterGain;
+  var musicGain, sfxGain, uiGain, ambienceGain, masterGain;
   var musicNodes = [];
   var musicTimer = null;
   var started = false;
@@ -21,15 +21,42 @@
     musicGain.connect(masterGain);
     sfxGain = ctx.createGain();
     sfxGain.connect(masterGain);
+    uiGain = ctx.createGain();
+    uiGain.connect(masterGain);
+    ambienceGain = ctx.createGain();
+    ambienceGain.connect(masterGain);
     applyVolumes();
+    startAmbience();
     return ctx;
   }
 
   function applyVolumes() {
     if (!ctx) return;
     var s = RV.Save.get().settings;
+    var master = s.masterVolume != null ? s.masterVolume : 1;
+    masterGain.gain.setTargetAtTime(master, ctx.currentTime, 0.05);
     musicGain.gain.setTargetAtTime(s.musicVolume * 0.5, ctx.currentTime, 0.05);
     sfxGain.gain.setTargetAtTime(s.sfxVolume, ctx.currentTime, 0.05);
+    uiGain.gain.setTargetAtTime(s.uiVolume != null ? s.uiVolume : s.sfxVolume, ctx.currentTime, 0.05);
+    ambienceGain.gain.setTargetAtTime((s.ambienceVolume != null ? s.ambienceVolume : 0.5) * 0.12, ctx.currentTime, 0.3);
+  }
+
+  // A very soft, always-on drone so the Ambience slider has something real
+  // to control, independent of the per-map music track.
+  function startAmbience() {
+    var osc1 = ctx.createOscillator();
+    var osc2 = ctx.createOscillator();
+    var lfo = ctx.createOscillator();
+    var lfoGain = ctx.createGain();
+    osc1.type = 'sine'; osc1.frequency.value = 55;
+    osc2.type = 'sine'; osc2.frequency.value = 82.5;
+    lfo.type = 'sine'; lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 0.5;
+    lfo.connect(lfoGain);
+    lfoGain.connect(ambienceGain.gain);
+    osc1.connect(ambienceGain);
+    osc2.connect(ambienceGain);
+    osc1.start(); osc2.start(); lfo.start();
   }
 
   function resume() {
@@ -52,7 +79,7 @@
     gain.gain.exponentialRampToValueAtTime(peak, t0 + Math.min(0.02, dur * 0.3));
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     osc.connect(gain);
-    gain.connect(sfxGain);
+    gain.connect(opts.bus === 'ui' ? uiGain : sfxGain);
     osc.start(t0);
     osc.stop(t0 + dur + 0.02);
   }
@@ -79,8 +106,8 @@
   }
 
   var SFX = {
-    click: function () { tone(520, 0.06, { type: 'square', volume: 0.15 }); },
-    buttonPress: function () { tone(340, 0.05, { type: 'square', volume: 0.14 }); },
+    click: function () { tone(520, 0.06, { type: 'square', volume: 0.15, bus: 'ui' }); },
+    buttonPress: function () { tone(340, 0.05, { type: 'square', volume: 0.14, bus: 'ui' }); },
     coin: function () { tone(880, 0.09, { type: 'triangle', slideTo: 1400, volume: 0.2 }); },
     gem: function () { tone(1200, 0.14, { type: 'sine', slideTo: 1800, volume: 0.22 }); tone(1600, 0.16, { type: 'sine', volume: 0.12 }); },
     dash: function () { tone(200, 0.14, { type: 'sawtooth', slideTo: 60, volume: 0.18 }); noiseBurst(0.12, { volume: 0.08, filterFreq: 3000 }); },
