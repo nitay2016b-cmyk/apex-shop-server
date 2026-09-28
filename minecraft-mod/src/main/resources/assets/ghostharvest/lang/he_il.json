@@ -11,6 +11,15 @@
   "part.ghostharvest.core": "לוז",
   "part.ghostharvest.leg": "רגל",
   "part.ghostharvest.fang": "ניב",
+  "part.ghostharvest.tusk": "ניב חזיר",
+  "part.ghostharvest.gold_tooth": "שן זהב",
+  "part.ghostharvest.wart": "יבלת",
+  "part.ghostharvest.nose": "אף",
+  "part.ghostharvest.rib": "צלע",
+  "part.ghostharvest.fin": "סנפיר",
+  "part.ghostharvest.trident_arm": "זרוע עם קלשון",
+  "part.ghostharvest.spike": "קוץ",
+  "part.ghostharvest.shell": "קליפה",
 
   "gui.ghostharvest.instant_kill": "הורג מיידית"
 }

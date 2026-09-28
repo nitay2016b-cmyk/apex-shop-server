@@ -11,6 +11,15 @@
   "part.ghostharvest.core": "Core",
   "part.ghostharvest.leg": "Leg",
   "part.ghostharvest.fang": "Fang",
+  "part.ghostharvest.tusk": "Tusk",
+  "part.ghostharvest.gold_tooth": "Gold Tooth",
+  "part.ghostharvest.wart": "Wart",
+  "part.ghostharvest.nose": "Nose",
+  "part.ghostharvest.rib": "Rib",
+  "part.ghostharvest.fin": "Fin",
+  "part.ghostharvest.trident_arm": "Trident Arm",
+  "part.ghostharvest.spike": "Spike",
+  "part.ghostharvest.shell": "Shell",
 
   "gui.ghostharvest.instant_kill": "instant kill"
 }

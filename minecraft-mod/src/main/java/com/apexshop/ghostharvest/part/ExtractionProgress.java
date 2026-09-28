@@ -38,12 +38,25 @@ public final class ExtractionProgress {
 		extractedCounts.merge(part.id(), 1, Integer::sum);
 	}
 
+	/**
+	 * True once every *grindable* (non-instant-kill) part is used up. Instant-kill
+	 * parts are deliberately excluded here - they have their own separate trigger
+	 * (see PartDefinition#instantKill), and an untouched one should never block a
+	 * mob from dying by having all its other parts ground down. A mob with no
+	 * grindable parts at all (e.g. a Creeper, which only has an instant "core")
+	 * can never die through this path - only through its instant part.
+	 */
 	public boolean isFullyDepleted(List<PartDefinition> parts) {
+		boolean hasGrindablePart = false;
 		for (PartDefinition part : parts) {
+			if (part.instantKill()) {
+				continue;
+			}
+			hasGrindablePart = true;
 			if (hasRemaining(part)) {
 				return false;
 			}
 		}
-		return true;
+		return hasGrindablePart;
 	}
 }
