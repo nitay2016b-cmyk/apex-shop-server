@@ -1,0 +1,16 @@
+{
+  "item.ghostharvest.extraction_hook": "Extraction Hook",
+  "entitytype.ghostharvest.ghost_follower": "Ghost",
+
+  "part.ghostharvest.eye": "Eye",
+  "part.ghostharvest.rod": "Fire Rod",
+  "part.ghostharvest.bone": "Bone",
+  "part.ghostharvest.skull": "Skull",
+  "part.ghostharvest.arm": "Arm",
+  "part.ghostharvest.head": "Head",
+  "part.ghostharvest.core": "Core",
+  "part.ghostharvest.leg": "Leg",
+  "part.ghostharvest.fang": "Fang",
+
+  "gui.ghostharvest.instant_kill": "instant kill"
+}

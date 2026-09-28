@@ -1,0 +1,16 @@
+{
+  "item.ghostharvest.extraction_hook": "מלקחת חילוץ",
+  "entitytype.ghostharvest.ghost_follower": "רוח רפאים",
+
+  "part.ghostharvest.eye": "עין",
+  "part.ghostharvest.rod": "מקל אש",
+  "part.ghostharvest.bone": "עצם",
+  "part.ghostharvest.skull": "גולגולת",
+  "part.ghostharvest.arm": "זרוע",
+  "part.ghostharvest.head": "ראש",
+  "part.ghostharvest.core": "לוז",
+  "part.ghostharvest.leg": "רגל",
+  "part.ghostharvest.fang": "ניב",
+
+  "gui.ghostharvest.instant_kill": "הורג מיידית"
+}

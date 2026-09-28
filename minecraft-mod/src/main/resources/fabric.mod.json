@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "ghostharvest",
+  "version": "${version}",
+  "name": "Ghost Harvest",
+  "description": "Grab a mob and extract its parts one at a time instead of trading with it. Deplete all of its parts (or take the one instant-kill part it has) and it dies - and a translucent ghost of it starts following you around.",
+  "authors": [
+    "nitay2016b"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.apexshop.ghostharvest.GhostHarvestMod"
+    ],
+    "client": [
+      "com.apexshop.ghostharvest.client.GhostHarvestClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21"
+  }
+}
