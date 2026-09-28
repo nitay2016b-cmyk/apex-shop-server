@@ -60,22 +60,63 @@ src/client/java/com/apexshop/ghostharvest/client/
 
 ברוב המקרים אלו שגיאות "שינוי שם" קטנות שכל IDE עם Fabric Loom (IntelliJ + Minecraft Development plugin, אחרי `./gradlew genSources` או Reload Gradle Project) יראה מיד עם קו אדום ואפשר לתקן ב-2 דקות.
 
-## בנייה והרצה
+## בנייה והתקנה מקומית - צעד אחר צעד
 
-דרוש אינטרנט תקין (להורדת Minecraft/Yarn/Fabric API על ידי Gradle - זה לא זמין בסביבה שבה נכתב המוד):
+זה חייב לקרות על המחשב שלכם (עם אינטרנט רגיל וכרטיס מסך) - לא ניתן להריץ/לשחק בתוך סביבת הענן שבה נכתב הקוד הזה.
+
+### 0. דרישות מקדימות
+
+- **JDK 21** מותקן (`java -version` צריך להראות 21). למשל [Adoptium Temurin 21](https://adoptium.net/).
+- **Git**.
+- מומלץ מאוד: **IntelliJ IDEA** (גרסת Community החינמית מספיקה) + תוסף **Minecraft Development** - זה מה שיתקן לבד כל שגיאת קומפילציה קטנה (ראו "מגבלות הסביבה" למעלה).
+- **לא** צריך חשבון Minecraft אמיתי כדי רק לבנות/לבדוק בפיתוח (שלב 2) - רק כדי להתקין בלאנצ'ר הרגיל (שלב 3).
+
+### 1. משיכת הקוד
 
 ```bash
+git clone https://github.com/nitay2016b-cmyk/apex-shop-server.git
+cd apex-shop-server
+git checkout claude/bold-gates-soz333
 cd minecraft-mod
-gradle build          # או ./gradlew build אחרי שמריצים `gradle wrapper` פעם אחת מקומית
 ```
 
-הריצה בפיתוח (עם קליינט Minecraft שנפתח אוטומטית):
+### 2. בנייה + בדיקה מהירה בקליינט פיתוח (בלי צורך בחשבון אמיתי)
 
 ```bash
-gradle runClient
+gradle wrapper --gradle-version 8.8   # פעם אחת בלבד, יוצר את gradlew
+./gradlew build
 ```
 
-ה-jar המוכן ייווצר תחת `build/libs/`. מתקינים אותו ב-`mods/` של Fabric Loader (יחד עם Fabric API) בגרסת Minecraft 1.21.1.
+אם יש שגיאות קומפילציה - זה צפוי (ראו "מגבלות הסביבה" למעלה); הכי מהיר לתקן דרך IntelliJ (Open → בחרו את תיקיית `minecraft-mod`, תנו ל-Gradle לסנכרן) שיראה בדיוק את השורה הבעייתית עם הצעת תיקון. אפשר גם להדביק לי את הודעת השגיאה המדויקת ואני אתקן.
+
+ברגע שזה מתקמפל, אפשר לבדוק מיד עם קליינט Minecraft שנפתח אוטומטית במצב פיתוח (לא דורש התחברות עם חשבון אמיתי):
+
+```bash
+./gradlew runClient
+```
+
+זה פותח עולם יצירה עם המוד כבר טעון. תנו לעצמכם את הפריט ותבדקו:
+
+```
+/give @s ghostharvest:extraction_hook
+```
+
+וקליק ימני על אנדרמן/בלייז/שלד/זומבי/קריפר/עכביש/פיגלין/מכשפה/שלד ווית'ר/טובע/שומר/דג כסף.
+
+### 3. התקנה בלאנצ'ר הרגיל של Minecraft (עם החשבון האמיתי שלכם)
+
+1. הריצו `./gradlew build` - ה-jar המוכן ייווצר תחת `build/libs/ghostharvest-1.0.0.jar` (לא הקבצים `-sources` או `-dev`).
+2. התקינו את **Fabric Loader** לגרסת 1.21.1 דרך המתקין הרשמי: https://fabricmc.net/use - זה יוצר פרופיל חדש בלאנצ'ר הרשמי של Minecraft.
+3. הורידו את מוד **Fabric API** (גרסה שמתאימה ל-1.21.1) מ-Modrinth או CurseForge.
+4. שימו את שני קבצי ה-jar (Fabric API + `ghostharvest-1.0.0.jar`) בתיקיית ה-`mods` של Minecraft:
+   - Windows: `%appdata%\.minecraft\mods`
+   - macOS: `~/Library/Application Support/minecraft/mods`
+   - Linux: `~/.minecraft/mods`
+5. פתחו את הלאנצ'ר הרשמי, בחרו את הפרופיל `fabric-loader-1.21.1`, ולחצו Play.
+
+### אם משהו לא מתקמפל / לא עובד
+
+הפרויקט נכתב בסביבה חסומת-אינטרנט בלי אפשרות להריץ בפועל build אמיתי מול Minecraft/Fabric - ראו את הסעיף "מגבלות הסביבה שבה זה נכתב" למעלה לרשימת הנקודות המדויקות שכדאי לבדוק ראשונות. הדביקו לי כל שגיאת קומפילציה או Exception מה-log ואני אתקן.
 
 ## רישיון
 
