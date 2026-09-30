@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "X X",
+    "X X"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:blaze_rod"
+    }
+  },
+  "result": {
+    "id": "mkheroes:scorpion_boots",
+    "count": 1
+  }
+}

@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "mkheroes",
+	"version": "${version}",
+	"name": "Mortal Kombat Heroes",
+	"description": "Scorpion & Sub-Zero hands, Thanos' Infinity Gauntlet, Iron Man's gauntlet, Spider-Man's web shooter and all their suits.",
+	"authors": ["nitay"],
+	"license": "MIT",
+	"icon": "assets/mkheroes/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["com.apex.mkheroes.MKHeroes"],
+		"client": ["com.apex.mkheroes.client.MKHeroesClient"]
+	},
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

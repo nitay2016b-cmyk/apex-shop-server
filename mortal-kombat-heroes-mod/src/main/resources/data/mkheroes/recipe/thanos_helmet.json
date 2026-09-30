@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "XXX",
+    "X X"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:gold_block"
+    }
+  },
+  "result": {
+    "id": "mkheroes:thanos_helmet",
+    "count": 1
+  }
+}

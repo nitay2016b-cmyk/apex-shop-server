@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "XXX",
+    "X X"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:cobweb"
+    }
+  },
+  "result": {
+    "id": "mkheroes:spiderman_helmet",
+    "count": 1
+  }
+}
