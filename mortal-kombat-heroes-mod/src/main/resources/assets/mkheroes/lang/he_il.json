@@ -1,5 +1,6 @@
 {
-  "itemGroup.mkheroes.main": "גיבורי מורטל קומבט",
+  "itemGroup.mkheroes.mortal_kombat": "מורטל קומבט",
+  "itemGroup.mkheroes.marvel": "מארוול",
   "item.mkheroes.scorpion_hands": "הידיים של סקורפיון",
   "item.mkheroes.subzero_hands": "הידיים של סאב זירו",
   "item.mkheroes.web_shooter": "יורה הקורים של ספיידרמן",
@@ -67,5 +68,12 @@
   "item.mkheroes.thanos_helmet": "קסדה של תאנוס",
   "item.mkheroes.thanos_chestplate": "חליפה (חזה) של תאנוס",
   "item.mkheroes.thanos_leggings": "מכנסיים של תאנוס",
-  "item.mkheroes.thanos_boots": "מגפיים של תאנוס"
+  "item.mkheroes.thanos_boots": "מגפיים של תאנוס",
+  "mkheroes.universe.mortal_kombat": "מורטל קומבט",
+  "mkheroes.universe.marvel": "מארוול",
+  "mkheroes.hero.scorpion": "סקורפיון",
+  "mkheroes.hero.subzero": "סאב זירו",
+  "mkheroes.hero.thanos": "תאנוס",
+  "mkheroes.hero.ironman": "איירון מן",
+  "mkheroes.hero.spiderman": "ספיידרמן"
 }

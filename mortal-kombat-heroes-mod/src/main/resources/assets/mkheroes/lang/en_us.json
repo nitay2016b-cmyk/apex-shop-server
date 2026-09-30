@@ -1,5 +1,6 @@
 {
-  "itemGroup.mkheroes.main": "Mortal Kombat Heroes",
+  "itemGroup.mkheroes.mortal_kombat": "Mortal Kombat",
+  "itemGroup.mkheroes.marvel": "Marvel",
   "item.mkheroes.scorpion_hands": "Scorpion's Hands",
   "item.mkheroes.subzero_hands": "Sub-Zero's Hands",
   "item.mkheroes.web_shooter": "Spider-Man's Web Shooter",
@@ -67,5 +68,12 @@
   "item.mkheroes.thanos_helmet": "Thanos Mask",
   "item.mkheroes.thanos_chestplate": "Thanos Suit",
   "item.mkheroes.thanos_leggings": "Thanos Leggings",
-  "item.mkheroes.thanos_boots": "Thanos Boots"
+  "item.mkheroes.thanos_boots": "Thanos Boots",
+  "mkheroes.universe.mortal_kombat": "Mortal Kombat",
+  "mkheroes.universe.marvel": "Marvel",
+  "mkheroes.hero.scorpion": "Scorpion",
+  "mkheroes.hero.subzero": "Sub-Zero",
+  "mkheroes.hero.thanos": "Thanos",
+  "mkheroes.hero.ironman": "Iron Man",
+  "mkheroes.hero.spiderman": "Spider-Man"
 }

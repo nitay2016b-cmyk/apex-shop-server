@@ -9,7 +9,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.item.ItemGroup;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -27,6 +27,15 @@ public class MKHeroes implements ModInitializer {
 		return Identifier.of(MOD_ID, path);
 	}
 
+	/** One creative tab per world, so Mortal Kombat and Marvel items are not mixed. */
+	private static void registerTab(ModItems.Universe universe, Item icon) {
+		Registry.register(Registries.ITEM_GROUP, id(universe.id), FabricItemGroup.builder()
+				.icon(() -> new ItemStack(icon))
+				.displayName(Text.translatable("itemGroup.mkheroes." + universe.id))
+				.entries((context, entries) -> universe.items.forEach(entries::add))
+				.build());
+	}
+
 	@Override
 	public void onInitialize() {
 		ModComponents.init();
@@ -34,11 +43,8 @@ public class MKHeroes implements ModInitializer {
 		ModArmorMaterials.init();
 		ModItems.init();
 
-		Registry.register(Registries.ITEM_GROUP, id("main"), FabricItemGroup.builder()
-				.icon(() -> new ItemStack(ModItems.SCORPION_HANDS))
-				.displayName(Text.translatable("itemGroup.mkheroes.main"))
-				.entries((context, entries) -> ModItems.ALL.forEach(entries::add))
-				.build());
+		registerTab(ModItems.Universe.MORTAL_KOMBAT, ModItems.SCORPION_HANDS);
+		registerTab(ModItems.Universe.MARVEL, ModItems.INFINITY_GAUNTLET);
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {

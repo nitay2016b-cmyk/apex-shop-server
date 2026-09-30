@@ -180,7 +180,7 @@ SUITS = {
     "subzero": {"1": hexc("0b2140"), "2": hexc("2f7fe0"), "3": hexc("9aa6b8"), "4": hexc("ffffff")},
     "spiderman": {"1": hexc("3a0000"), "2": hexc("d01515"), "3": hexc("1a3fb0"), "4": hexc("ffffff")},
     "ironman": {"1": hexc("3a0505"), "2": hexc("c01818"), "3": hexc("e8b92e"), "4": hexc("7ff6ff")},
-    "thanos": {"1": hexc("3a2a00"), "2": hexc("e0a820"), "3": hexc("2a3f9a"), "4": hexc("8a4fc0")},
+    "thanos": {"1": hexc("0e1440"), "2": hexc("2a3f9a"), "3": hexc("e0a820"), "4": hexc("8a4fc0")},
 }
 
 
@@ -328,20 +328,20 @@ def armor_layers():
     # ---- Thanos: gold helmet & shoulders, blue body, purple skin at the chin
     for layer in (1, 2):
         c = SUITS["thanos"]
-        img = canvas(c["3"])
+        img = canvas(c["2"])
         if layer == 1:
-            rect(img, 0, 0, 32, 16, c["2"])  # helmet
+            rect(img, 0, 0, 32, 16, c["3"])  # helmet
             fx, fy = HEAD_FRONT
             rect(img, fx + 1, fy + 3, fx + 7, fy + 8, c["4"])
             for ex in (fx + 2, fx + 5):
                 px(img, ex, fy + 4, hexc("202020"))
             rect(img, fx + 2, fy + 6, fx + 6, fy + 7, shade(c["4"], -50))
-            rect(img, 40, 16, 56, 22, c["2"])  # shoulder pads
-            rect(img, 20, 20, 28, 24, c["2"])  # chest plate
-            rect(img, 23, 24, 25, 32, c["2"])
+            rect(img, 40, 16, 56, 22, c["3"])  # shoulder pads
+            rect(img, 20, 20, 28, 24, c["3"])  # chest plate
+            rect(img, 23, 24, 25, 32, c["3"])
         else:
-            belt(img, c["2"])
-            rect(img, 0, 28, 16, 32, c["2"])
+            belt(img, c["3"])
+            rect(img, 0, 28, 16, 32, c["3"])
         write_png(os.path.join(out, f"thanos_layer_{layer}.png"), img)
 
 
