@@ -8,6 +8,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,3 +30,15 @@ jobs:
         with:
           name: mortal-kombat-heroes-mod
           path: mortal-kombat-heroes-mod/build/libs/*.jar
+      - name: Publish the jar as a download (GitHub Release)
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mod-latest
+          name: Mortal Kombat Heroes mod (latest)
+          body: |
+            Download the .jar below and put it in your `mods` folder together with Fabric API (Minecraft 1.21.1, Fabric Loader).
+            מורידים את קובץ ה-jar למטה ושמים אותו בתיקיית mods יחד עם Fabric API.
+          prerelease: false
+          make_latest: true
+          files: mortal-kombat-heroes-mod/build/libs/mortal-kombat-heroes-1.0.0.jar
