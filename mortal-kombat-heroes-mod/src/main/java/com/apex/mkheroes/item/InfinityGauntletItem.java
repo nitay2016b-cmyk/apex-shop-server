@@ -199,7 +199,7 @@ public class InfinityGauntletItem extends Item {
 		Vec3d c = player.getPos();
 		world.spawnParticles(Stone.MIND.dust, c.x, c.y + 1, c.z, 200, 8, 2, 8, 0);
 		world.spawnParticles(ParticleTypes.ENCHANT, c.x, c.y + 1, c.z, 150, 6, 2, 6, 1);
-		world.playSound(null, c.x, c.y, c.z, SoundEvents.ENTITY_EVOKER_PREPARE_WONDER, SoundCategory.PLAYERS, 1.5f, 1.0f);
+		world.playSound(null, c.x, c.y, c.z, SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, SoundCategory.PLAYERS, 1.5f, 1.0f);
 		List<MobEntity> mobs = new ArrayList<>();
 		for (LivingEntity e : around(world, player, c, 20)) {
 			if (e instanceof MobEntity mob) {
