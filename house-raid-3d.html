@@ -157,6 +157,15 @@ input.nameIn{background:#0d151d;border:1px solid rgba(255,255,255,.15);color:#ff
   <div id="oLv" class="small"></div><button id="toLobby2">BACK TO LOBBY</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 (function(){
 'use strict';
@@ -560,7 +569,8 @@ function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect
 addEventListener('resize',resize); resize();
 
 const ARENA=160;
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(ARENA*2+40,ARENA*2+40),pbr(TEX.grass(),1,160,.8));
+const groundMat=pbr(TEX.grass(),1,160,.8);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(ARENA*2+40,ARENA*2+40),groundMat);
 ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
 
 const wallBoxes=[];       // collision (2D AABB)
@@ -728,6 +738,7 @@ function startReload(){
 ===================================================== */
 const bots=[]; const MAX_BOTS=14;
 function makeBot(){
+  if(soldier&&THREE.SkeletonUtils){ try{ return makeSoldierBot(); }catch(e){ console.warn(e); soldier=null; } }
   const keys2=Object.keys(OUTFITS);
   const {g,head,torso}=buildCharacter(keys2[Math.floor(Math.random()*keys2.length)],false);
   const gun=weaponModel(['pistol','smg','shotgun'][Math.floor(Math.random()*3)],true); gun.scale.setScalar(1.1); gun.position.set(.3,1.05,.4); g.add(gun);
@@ -742,7 +753,7 @@ function spawnBot(){
     tries++;
   }while((inWall(x,z,1.2)||Math.hypot(x-camera.position.x,z-camera.position.z)<28)&&tries<60);
   const m=makeBot(); m.g.position.set(x,0,z); scene.add(m.g);
-  const b={g:m.g,head:m.head,body:m.body,hp:60,t:Math.random()*1.5,strafe:0,sdir:1,stuck:0,los:false,losT:0};
+  const b={g:m.g,head:m.head,body:m.body,mixer:m.mixer,act:m.act,cur:'Idle',hp:60,t:Math.random()*1.5,strafe:0,sdir:1,stuck:0,los:false,losT:0};
   m.head.userData.bot=b; m.body.userData.bot=b; bots.push(b);
 }
 function damageBot(b,d,head){
@@ -784,6 +795,9 @@ function updateBots(dt){
       if(Math.random()<Math.max(.2,.55-dist/80)) hurt(8+Math.floor(Math.random()*5));
     }
     b.g.position.y=0;
+    if(b.mixer){ const want=(mx||mz)?'Run':'Idle';
+      if(b.cur!==want&&b.act[want]){ if(b.act[b.cur]) b.act[b.cur].fadeOut(.2); b.act[want].reset().fadeIn(.2).play(); b.cur=want; }
+      b.mixer.update(dt); }
   }
 }
 function hurt(d){
@@ -886,13 +900,86 @@ function loop(now){
     // slow armor regen? none. keep bots topped up
     if(bots.length<MAX_BOTS&&Math.random()<.002) spawnBot();
   }
-  renderer.render(scene,camera);
+  if(composer){ gradePass.uniforms.time.value=(now*.001)%10; composer.render(); } else renderer.render(scene,camera);
+}
+
+
+/* =====================================================
+   CINEMATIC POST-PROCESSING (bloom, tone-mapping, grade, vignette, grain, MSAA)
+===================================================== */
+const GradeShader={
+  uniforms:{tDiffuse:{value:null},time:{value:0},exposure:{value:.95}},
+  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform sampler2D tDiffuse;uniform float time;uniform float exposure;varying vec2 vUv;'+
+  'vec3 aces(vec3 x){x*=exposure;return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}'+
+  'float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233))+time)*43758.5453);}'+
+  'void main(){vec2 d=vUv-.5;float ca=dot(d,d)*.006;'+
+  'vec3 c=vec3(texture2D(tDiffuse,vUv+d*ca).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-d*ca).b);'+
+  'c=aces(c);float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.18);'+
+  'c=mix(c*c*(3.-2.*c),c,.5);c*=vec3(1.04,1.0,.94);'+
+  'c*=1.-dot(d,d)*1.25;c+=(hash(vUv*vec2(1920.,1080.))-.5)*.04;'+
+  'gl_FragColor=vec4(pow(clamp(c,0.,1.),vec3(1./2.2)),1.);}'
+};
+let composer=null, gradePass=null;
+function initComposer(){
+  if(!(THREE.EffectComposer&&THREE.RenderPass&&THREE.ShaderPass&&THREE.UnrealBloomPass)) return;
+  try{
+    renderer.outputEncoding=THREE.LinearEncoding; renderer.toneMapping=THREE.NoToneMapping;
+    const pr=Math.min(devicePixelRatio,1.5); renderer.setPixelRatio(pr);
+    const rt=new THREE.WebGLMultisampleRenderTarget(innerWidth*pr,innerHeight*pr,{type:THREE.HalfFloatType,format:THREE.RGBAFormat});
+    rt.samples=4;
+    composer=new THREE.EffectComposer(renderer,rt);
+    composer.addPass(new THREE.RenderPass(scene,camera));
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.38,.65,.92));
+    gradePass=new THREE.ShaderPass(GradeShader); composer.addPass(gradePass);
+    composer.setPixelRatio&&composer.setPixelRatio(pr); composer.setSize(innerWidth,innerHeight);
+  }catch(e){ console.warn('post-processing disabled',e); composer=null; setupRenderer(renderer); }
+}
+addEventListener('resize',()=>{ if(composer) composer.setSize(innerWidth,innerHeight); });
+
+/* =====================================================
+   REAL ASSETS (loaded from the three.js examples CDN; procedural fallbacks stay if offline)
+===================================================== */
+const GH='https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/';
+function loadTex(url,srgb,cb){
+  new THREE.TextureLoader().load(url,t=>{ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; if(srgb) t.encoding=THREE.sRGBEncoding; cb(t); },undefined,()=>{});
+}
+function realMat(mat,diffuse,bump,rep,bs){
+  loadTex(GH+'textures/'+diffuse,true,d=>{ d.repeat.set(rep,rep);
+    mat.map=d; mat.normalMap=null; mat.color.set(0xffffff); mat.needsUpdate=true;
+    if(bump) loadTex(GH+'textures/'+bump,false,b=>{ b.repeat.set(rep,rep); mat.bumpMap=b; mat.bumpScale=bs||1; mat.needsUpdate=true; });
+  });
+}
+realMat(groundMat,'terrain/grasslight-big.jpg',null,90);
+realMat(woodMat,'hardwood2_diffuse.jpg','hardwood2_bump.jpg',1,1.5);
+realMat(brickMat,'brick_diffuse.jpg','brick_bump.jpg',1,2);
+if(THREE.RGBELoader){
+  new THREE.RGBELoader().load(GH+'textures/equirectangular/royal_esplanade_1k.hdr',tex=>{
+    tex.mapping=THREE.EquirectangularReflectionMapping;
+    const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromEquirectangular(tex).texture; pm.dispose();
+    scene.background=tex; scene.remove(skyDome);
+  },undefined,()=>{});
+}
+let soldier=null;
+if(THREE.GLTFLoader) new THREE.GLTFLoader().load(GH+'models/gltf/Soldier.glb',g=>{ soldier=g; },undefined,()=>{});
+function makeSoldierBot(){
+  const g=new THREE.Group(), model=THREE.SkeletonUtils.clone(soldier.scene);
+  model.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.material=o.material.clone(); } });
+  g.add(model);
+  const inv=new THREE.MeshBasicMaterial({visible:false});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.6,1.1,.4),inv); body.position.y=1.05; g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.22,8,8),inv); head.position.y=1.68; g.add(head);
+  const gun=weaponModel(['pistol','smg','shotgun'][Math.floor(Math.random()*3)],true); gun.scale.setScalar(1.1); gun.position.set(.28,1.15,.4); g.add(gun);
+  const mixer=new THREE.AnimationMixer(model), act={};
+  soldier.animations.forEach(c=>{ if(c.name==='Idle'||c.name==='Run') act[c.name]=mixer.clipAction(c); });
+  if(act.Idle) act.Idle.play();
+  return {g,head,body,gun,mixer,act};
 }
 
 /* =====================================================
    INIT
 ===================================================== */
-initPreview(); refreshAll(); pvLoop(); requestAnimationFrame(loop);
+initComposer(); initPreview(); refreshAll(); pvLoop(); requestAnimationFrame(loop);
 window.__game={setView(y,p){yaw=y;pitch=p;},P,startMatch,bots,camera,get playing(){return playing;},killBot,level};
 })();
 </script>
