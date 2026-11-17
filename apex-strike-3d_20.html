@@ -161,7 +161,7 @@
     padding:28px 26px;border:1px solid rgba(255,255,255,0.08);}
   #lobbyTabs{position:fixed;top:0;left:0;right:0;background:rgba(4,8,10,0.55);backdrop-filter:blur(10px);
     padding:14px 24px;margin:0;display:flex;gap:6px;border-bottom:1px solid rgba(255,255,255,0.1);
-    justify-content:flex-start;border-radius:0;z-index:2;}
+    justify-content:flex-start;border-radius:0;z-index:5;}
   .lobbyTab{background:transparent;border:none;color:#8fa2b5;font-weight:800;font-size:12px;letter-spacing:2px;
     padding:9px 18px;border-radius:8px;cursor:pointer;transition:.15s;}
   .lobbyTab:hover{color:#cfe0ee;}
@@ -308,6 +308,59 @@
     #netStatus{top:auto;bottom:250px;left:14px;}
     #gpStatus{display:none !important;}
   }
+
+  /* ===== profile / armory / gear ===== */
+  .slot.locked{opacity:.28;}
+  #mainMenuPanel{max-height:calc(100vh - 100px);overflow-y:auto;top:calc(50% + 34px);}
+  #lockerPanel,#gearPanel{top:calc(50% + 34px);max-height:calc(100vh - 100px);}
+  #lobbyTabs{flex-wrap:wrap;align-items:center;}
+  .lobbyTab{padding:9px 14px;}
+  #lobbyProfileChip{margin-left:auto;display:flex;align-items:center;gap:10px;cursor:pointer;color:#e6edf3;}
+  #lobbyProfileChip .meta{display:flex;flex-direction:column;gap:3px;min-width:120px;}
+  #lobbyProfileChip .row1{font-size:11px;font-weight:800;letter-spacing:1px;display:flex;justify-content:space-between;gap:10px;}
+  #lobbyProfileChip .coins{color:var(--gold);}
+  .xpBar{height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;}
+  .xpBar > div{height:100%;width:0%;background:linear-gradient(90deg,#7dff5a,#00e5ff);transition:width .3s;}
+  .avatar{--tier:#8fa2b5;--glow:8px;--bw:2px;position:relative;width:42px;height:42px;border-radius:50%;flex:none;
+    background:linear-gradient(135deg,#1c3b52,#0b1620) center/cover no-repeat;
+    border:var(--bw) solid var(--tier);box-shadow:0 0 var(--glow) var(--tier);
+    display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:18px;}
+  .avatar .lvBadge{position:absolute;right:-6px;bottom:-6px;min-width:20px;height:20px;border-radius:10px;padding:0 5px;
+    background:var(--tier);color:#001018;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+  .avatar.big{width:120px;height:120px;font-size:52px;}
+  .avatar.big .lvBadge{min-width:34px;height:34px;border-radius:17px;font-size:16px;right:-4px;bottom:-4px;}
+  .avatar.mythic{animation:mythicPulse 1.6s ease-in-out infinite;}
+  @keyframes mythicPulse{50%{filter:brightness(1.4) hue-rotate(25deg);}}
+  #profileTop{display:flex;align-items:center;gap:22px;text-align:left;margin:14px 0 18px;}
+  #profileTop .info{flex:1;}
+  #profileTier{font-size:13px;font-weight:900;letter-spacing:3px;}
+  #profileXpText{font-size:12px;color:#8fa2b5;margin:6px 0;}
+  #profileStats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0;}
+  #profileStats div{background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;}
+  #profileStats b{display:block;font-size:20px;color:#fff;}
+  #profileStats span{font-size:10px;letter-spacing:2px;color:#8fa2b5;}
+  #tierRoad{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+  #tierRoad span{font-size:10px;font-weight:800;letter-spacing:1px;padding:4px 8px;border-radius:12px;border:1px solid var(--c);color:var(--c);opacity:.35;}
+  #tierRoad span.on{opacity:1;background:rgba(255,255,255,0.06);}
+  .secTitle{font-size:11px;letter-spacing:3px;color:#8fa2b5;margin:18px 0 10px;text-align:left;}
+  .itemGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+  .itemCard{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 8px;text-align:center;}
+  .itemCard.equipped{border-color:var(--green);box-shadow:0 0 12px rgba(125,255,90,0.35);}
+  .itemCard .ico{font-size:28px;margin-bottom:4px;}
+  .itemCard .nm{font-size:11px;font-weight:800;letter-spacing:1px;color:#e6edf3;}
+  .itemCard .ds{font-size:10px;color:#8fa2b5;margin:4px 0 8px;min-height:24px;}
+  .itemBtn{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--gold);cursor:pointer;padding:7px 4px;
+    border:1px solid rgba(255,206,69,0.45);border-radius:6px;}
+  .itemBtn:hover{background:rgba(255,206,69,0.12);}
+  .itemBtn.own{color:var(--accent);border-color:rgba(0,229,255,0.4);}
+  .itemBtn.on{color:var(--green);border-color:var(--green);cursor:default;}
+  .itemBtn.no{opacity:.45;cursor:not-allowed;}
+  #armoryPanel,#profilePanel{max-height:84vh;overflow-y:auto;}
+  #gearPanel{position:fixed;right:36px;top:50%;transform:translateY(-50%);width:400px;max-height:82vh;overflow-y:auto;text-align:left;margin:0;z-index:2;}
+  #gearPanel h1,#gearPanel h2{text-align:left;}
+  @media (max-width:900px){ #gearPanel{position:static !important;transform:none !important;width:90%;max-width:500px;margin:70px auto 0 !important;} }
+  #xpHud{position:fixed;left:0;right:0;bottom:0;height:5px;background:rgba(0,0,0,0.5);z-index:15;pointer-events:none;}
+  #xpHud > div{height:100%;width:0%;background:linear-gradient(90deg,#7dff5a,#00e5ff);transition:width .25s;}
 </style>
 </head>
 <body>
@@ -316,8 +369,17 @@
   <div id="lobbyTabs">
     <button class="lobbyTab active" data-tab="play">PLAY</button>
     <button class="lobbyTab" data-tab="shop">SHOP</button>
+    <button class="lobbyTab" data-tab="armory">ARMORY</button>
+    <button class="lobbyTab" data-tab="gear">GEAR</button>
     <button class="lobbyTab" data-tab="locker">LOCKER</button>
     <button class="lobbyTab" data-tab="battlepass">BATTLE PASS</button>
+    <div id="lobbyProfileChip" data-tab="profile">
+      <div class="meta">
+        <div class="row1"><span id="chipName">PLAYER</span><span class="coins" id="chipCoins">🪙 0</span></div>
+        <div class="xpBar"><div id="chipXp"></div></div>
+      </div>
+      <div class="avatar" id="chipAvatar"><span class="lvBadge">1</span></div>
+    </div>
   </div>
   <canvas id="lobbyPreviewCanvas"></canvas>
 
@@ -392,6 +454,51 @@
     <div id="bpSkinPreview"></div>
   </div>
 
+
+  <div class="panel" id="armoryPanel" style="display:none;max-width:680px;">
+    <h1 style="font-size:30px;">ARMORY</h1>
+    <h2 id="armoryCoins">🪙 0 COINS</h2>
+    <p class="desc">Buy weapons and ammo with in-game coins. Every kill = +50 🪙. Ammo you buy is loaded at the start of your next match.</p>
+    <div class="secTitle">WEAPONS — pick your starting weapon</div>
+    <div class="itemGrid" id="weaponShopGrid"></div>
+    <div class="secTitle">AMMO</div>
+    <div class="itemGrid" id="ammoShopGrid"></div>
+  </div>
+
+  <div class="panel" id="gearPanel" style="display:none;">
+    <h1 style="font-size:30px;">GEAR</h1>
+    <h2 id="gearCoins">🪙 0 COINS</h2>
+    <div class="secTitle">MASKS (+ bonus armor)</div>
+    <div class="itemGrid" id="maskGrid"></div>
+    <div class="secTitle">GLOVES (faster reload)</div>
+    <div class="itemGrid" id="gloveGrid"></div>
+  </div>
+
+  <div class="panel" id="profilePanel" style="display:none;max-width:560px;">
+    <h1 style="font-size:30px;">PROFILE</h1>
+    <div id="profileTop">
+      <div class="avatar big" id="profileAvatar"><span class="lvBadge">1</span></div>
+      <div class="info">
+        <div id="profileTier">ROOKIE</div>
+        <div id="profileName" style="font-size:22px;font-weight:900;">PLAYER</div>
+        <div id="profileXpText"></div>
+        <div class="xpBar" style="height:10px;"><div id="profileXpBar"></div></div>
+      </div>
+    </div>
+    <div class="modeRow" style="margin-bottom:6px;">
+      <button class="btnGhost" id="avatarUploadBtn">🖼 CHANGE PICTURE</button>
+      <button class="btnGhost" id="avatarResetBtn">RESET</button>
+    </div>
+    <input type="file" id="avatarFile" accept="image/*" style="display:none">
+    <div id="profileStats">
+      <div><b id="pfCoins">0</b><span>COINS</span></div>
+      <div><b id="pfXp">0</b><span>TOTAL XP</span></div>
+      <div><b id="pfKills">0</b><span>TOTAL KILLS</span></div>
+    </div>
+    <p class="desc">Every kill = +100 XP. Every 10,000 XP = +1 level. A higher level upgrades your profile frame, glow and title.</p>
+    <div id="tierRoad"></div>
+  </div>
+
   <div class="panel" id="onlinePanel">
     <h1 style="font-size:32px;">BATTLE ROYALE</h1>
     <h2 id="mmStatusText">SEARCHING FOR A MATCH…</h2>
@@ -464,6 +571,7 @@
 </div>
 
 <div id="hud">
+  <div id="xpHud"><div id="xpHudFill"></div></div>
   <div id="compassStrip"><div id="compassInner"></div><div id="compassMark"></div></div>
   <div id="topBar">
     <div class="statChip" id="waveChip"><div class="lbl" id="waveLbl">WAVE</div><div class="val" id="waveVal">1</div></div>
@@ -1245,7 +1353,10 @@ function cycleSlot(dir){
     selectPiece(buildPieceOrder[idx]);
   } else {
     let idx = weaponOrder.indexOf(currentWeaponKey);
-    idx = (idx+dir+weaponOrder.length)%weaponOrder.length;
+    for(let i=0;i<weaponOrder.length;i++){
+      idx = (idx+dir+weaponOrder.length)%weaponOrder.length;
+      if(profile.weaponsOwned.includes(weaponOrder[idx])) break;
+    }
     equipWeapon(weaponOrder[idx]);
   }
 }
@@ -1399,6 +1510,7 @@ function buildWeaponMesh(type){
     scope.rotation.x = Math.PI/2; scope.position.set(0,0.14,-0.1); g.add(scope);
     const strip = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.7), accentMat); strip.position.set(0.05,0.07,-0.15); g.add(strip);
   }
+  addFPGloves(g, type);
   return g;
 }
 
@@ -1421,6 +1533,7 @@ let recoilT = 0;
 
 function equipWeapon(key){
   if(buildMode) return;
+  if(!profile.weaponsOwned.includes(key)) return;
   currentWeaponKey = key;
   if(currentMesh) weaponViewGroup.remove(currentMesh);
   currentMesh = buildWeaponMesh(WEAPONS[key].kind);
@@ -1451,7 +1564,7 @@ function reloadWeapon(){
   if(gameState!=='playing' || buildMode) return;
   const w = WEAPONS[currentWeaponKey]; const st = weaponState[currentWeaponKey];
   if(reloading || st.ammo>=w.mag || st.reserve<=0) return;
-  reloading = true; reloadTimer = w.reloadTime;
+  reloading = true; reloadTimer = w.reloadTime * gloveReloadMult();
   AudioSys.reload();
   updateHudWeapon();
 }
@@ -1729,10 +1842,21 @@ function saveProfile(p){
 }
 let profile = loadProfile();
 if(profile.battlePass === undefined) profile.battlePass = false;
+if(typeof profile.xp !== 'number') profile.xp = 0;
+if(typeof profile.totalKills !== 'number') profile.totalKills = 0;
+if(!Array.isArray(profile.weaponsOwned)) profile.weaponsOwned = ['pistol'];
+if(!profile.startWeapon) profile.startWeapon = 'pistol';
+if(!profile.ammoBank) profile.ammoBank = {};
+if(!Array.isArray(profile.masksOwned)) profile.masksOwned = ['none'];
+if(!Array.isArray(profile.glovesOwned)) profile.glovesOwned = ['none'];
+if(!profile.mask) profile.mask = 'none';
+if(!profile.glove) profile.glove = 'none';
+if(profile.avatar === undefined) profile.avatar = null;
 function getEquippedSkin(){ return SKINS[profile.equipped] ? profile.equipped : 'default'; }
 function awardCoins(amount){
   profile.coins += amount;
   saveProfile(profile);
+  refreshProfileUI();
 }
 function refreshShopUI(){
   const coinsText = '🪙 ' + profile.coins + ' COINS';
@@ -1777,6 +1901,287 @@ function refreshShopUI(){
     bpGrid.innerHTML = '';
     Object.keys(SKINS).filter(k=>SKINS[k].bp).forEach(key=> bpGrid.appendChild(buildSkinCard(key)));
   }
+}
+
+
+/* =========================================================
+   PROGRESSION — kill rewards, XP / levels, weapons, ammo, masks, gloves
+========================================================= */
+const KILL_COINS = 50;       // coins per kill
+const KILL_XP = 100;         // xp per kill
+const XP_PER_LEVEL = 10000;  // xp needed for each level
+const WEAPON_SHOP = {
+  pistol:  {price:0,    icon:'🔫', desc:'Free starter'},
+  smg:     {price:1500, icon:'🔫', desc:'Fast automatic'},
+  shotgun: {price:2500, icon:'💥', desc:'Close-range power'},
+  sniper:  {price:4000, icon:'🎯', desc:'One-shot precision'},
+};
+const AMMO_PACKS = {
+  pistol:  {price:150, qty:30, label:'PISTOL AMMO'},   // cheapest item = 150
+  smg:     {price:250, qty:90, label:'SMG AMMO'},
+  shotgun: {price:300, qty:18, label:'SHOTGUN SHELLS'},
+  sniper:  {price:400, qty:10, label:'SNIPER ROUNDS'},
+  grenade: {price:500, qty:2,  label:'GRENADES'},
+};
+const MASKS = {
+  none:   {name:'NO MASK',  price:0,    armor:0,  icon:'🙂'},
+  skull:  {name:'SKULL',    price:400,  armor:10, icon:'💀'},
+  ninja:  {name:'NINJA',    price:600,  armor:15, icon:'🥷'},
+  hockey: {name:'HOCKEY',   price:800,  armor:15, icon:'🏒'},
+  gas:    {name:'GAS MASK', price:1000, armor:20, icon:'😷'},
+  demon:  {name:'DEMON',    price:2000, armor:30, icon:'👹'},
+};
+const GLOVES = {
+  none:     {name:'NO GLOVES', price:0,    reload:1.0,  color:0,        icon:'✋'},
+  tactical: {name:'TACTICAL',  price:300,  reload:0.9,  color:0x1a1a1a,  icon:'🧤'},
+  boxing:   {name:'RED',       price:500,  reload:0.85, color:0xcc1f2e,  icon:'🥊'},
+  neon:     {name:'NEON',      price:800,  reload:0.8,  color:0x39ff14,  icon:'🧤'},
+  gold:     {name:'GOLD',      price:1800, reload:0.7,  color:0xffce45,  icon:'🧤'},
+};
+const TIERS = [
+  {n:'ROOKIE',c:'#8fa2b5'},{n:'BRONZE',c:'#cd7f32'},{n:'SILVER',c:'#d0d8e0'},{n:'GOLD',c:'#ffce45'},
+  {n:'PLATINUM',c:'#7cf3ff'},{n:'DIAMOND',c:'#6aa8ff'},{n:'MASTER',c:'#b86bff'},{n:'LEGEND',c:'#ff7a29'},{n:'MYTHIC',c:'#ff3860'},
+];
+let runCoins = 0;
+function getLevel(){ return Math.floor(profile.xp / XP_PER_LEVEL) + 1; }
+function getTier(){ return TIERS[Math.min(getLevel()-1, TIERS.length-1)]; }
+function maskArmor(){ return (MASKS[profile.mask]||MASKS.none).armor; }
+function gloveReloadMult(){ return (GLOVES[profile.glove]||GLOVES.none).reload; }
+function spendCoins(n){
+  if(profile.coins < n) return false;
+  profile.coins -= n; saveProfile(profile); return true;
+}
+function addXP(amount){
+  const before = getLevel();
+  profile.xp += amount;
+  saveProfile(profile);
+  const after = getLevel();
+  updateXpHud(); refreshProfileUI();
+  if(after > before){ showCenterMsg('⭐ LEVEL UP! LEVEL ' + after + ' · ' + getTier().n); }
+}
+function onKillReward(){
+  profile.totalKills++;
+  runCoins += KILL_COINS;
+  awardCoins(KILL_COINS);
+  addXP(KILL_XP);
+  pushKillFeed('+' + KILL_COINS + ' 🪙   +' + KILL_XP + ' XP   (LV ' + getLevel() + ')', '#ffce45');
+}
+function updateXpHud(){
+  const f = document.getElementById('xpHudFill');
+  if(f) f.style.width = ((profile.xp % XP_PER_LEVEL)/XP_PER_LEVEL*100) + '%';
+}
+
+/* ---- profile picture ---- */
+let avatarFileOk = false;
+(function probeAvatarFile(){
+  const im = new Image();
+  im.onload = ()=>{ avatarFileOk = true; refreshProfileUI(); };
+  im.src = 'avatar.png';   // optional: drop your own avatar.png next to this HTML file
+})();
+function styleAvatar(el){
+  const tier = getTier(), lv = getLevel();
+  el.style.setProperty('--tier', tier.c);
+  el.style.setProperty('--glow', Math.min(6 + lv*3, 40) + 'px');
+  el.style.setProperty('--bw', (2 + Math.min(lv,8)*0.5) + 'px');
+  el.classList.toggle('mythic', tier.n==='MYTHIC');
+  const src = profile.avatar || (avatarFileOk ? 'avatar.png' : null);
+  el.style.backgroundImage = src ? 'url("'+src+'")' : '';
+  const badge = el.querySelector('.lvBadge');
+  badge.textContent = lv;
+  // text node = initial letter when there is no picture
+  Array.from(el.childNodes).forEach(n=>{ if(n.nodeType===3) n.remove(); });
+  if(!src) el.insertBefore(document.createTextNode((document.getElementById('nameInput').value||'P').trim().charAt(0).toUpperCase()||'P'), badge);
+}
+function refreshProfileUI(){
+  const lv = getLevel(), tier = getTier();
+  const inLv = profile.xp % XP_PER_LEVEL;
+  const nm = (document.getElementById('nameInput').value||'').trim() || 'PLAYER';
+  document.getElementById('chipName').textContent = nm.toUpperCase() + ' · LV ' + lv;
+  document.getElementById('chipCoins').textContent = '🪙 ' + profile.coins;
+  document.getElementById('chipXp').style.width = (inLv/XP_PER_LEVEL*100) + '%';
+  styleAvatar(document.getElementById('chipAvatar'));
+  styleAvatar(document.getElementById('profileAvatar'));
+  const t = document.getElementById('profileTier'); t.textContent = tier.n + ' · LEVEL ' + lv; t.style.color = tier.c;
+  document.getElementById('profileName').textContent = nm.toUpperCase();
+  document.getElementById('profileXpText').textContent = inLv + ' / ' + XP_PER_LEVEL + ' XP to level ' + (lv+1);
+  document.getElementById('profileXpBar').style.width = (inLv/XP_PER_LEVEL*100) + '%';
+  document.getElementById('pfCoins').textContent = profile.coins;
+  document.getElementById('pfXp').textContent = profile.xp;
+  document.getElementById('pfKills').textContent = profile.totalKills;
+  document.getElementById('tierRoad').innerHTML = TIERS.map((x,i)=>
+    '<span class="'+(lv-1>=i?'on':'')+'" style="--c:'+x.c+'">LV '+(i+1)+(i===TIERS.length-1?'+':'')+' '+x.n+'</span>').join('');
+  ['armoryCoins','gearCoins'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='🪙 '+profile.coins+' COINS'; });
+  updateXpHud();
+}
+document.getElementById('lobbyProfileChip').addEventListener('click', ()=> showLobbyTab('profile'));
+document.getElementById('avatarUploadBtn').addEventListener('click', ()=> document.getElementById('avatarFile').click());
+document.getElementById('avatarResetBtn').addEventListener('click', ()=>{ profile.avatar = null; saveProfile(profile); refreshProfileUI(); });
+document.getElementById('avatarFile').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    const im = new Image();
+    im.onload = ()=>{
+      const c = document.createElement('canvas'); c.width = c.height = 160;
+      const ctx = c.getContext('2d');
+      const m = Math.min(im.width, im.height);
+      ctx.drawImage(im, (im.width-m)/2, (im.height-m)/2, m, m, 0, 0, 160, 160);
+      profile.avatar = c.toDataURL('image/jpeg', 0.85);
+      saveProfile(profile); refreshProfileUI();
+    };
+    im.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+  e.target.value = '';
+});
+document.getElementById('nameInput').addEventListener('input', refreshProfileUI);
+
+/* ---- 3D masks + gloves (on the player body & lobby preview) ---- */
+function buildMask(id){
+  const g = new THREE.Group();
+  const mat = (c,em)=> new THREE.MeshStandardMaterial({color:c, roughness:0.5, emissive:em||0x000000, emissiveIntensity:em?0.9:0});
+  const box = (w,h,d,m,x,y,z)=>{ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); g.add(o); return o; };
+  const white = mat(0xf2f2f2), black = mat(0x0c0c0c);
+  if(id==='skull'){
+    box(0.36,0.32,0.08,white,0,1.72,0.26);
+    box(0.09,0.09,0.02,black,-0.09,1.76,0.31); box(0.09,0.09,0.02,black,0.09,1.76,0.31);
+    box(0.04,0.06,0.02,black,0,1.69,0.31);
+    for(let i=-2;i<=2;i++) box(0.03,0.07,0.02,black,i*0.055,1.62,0.31);
+  } else if(id==='ninja'){
+    box(0.6,0.26,0.6,black,0,1.66,0);
+    box(0.62,0.09,0.62,mat(0xcc1f2e),0,1.86,0);
+    box(0.4,0.05,0.04,mat(0xffffff,0xffffff),0,1.79,0.29);
+  } else if(id==='hockey'){
+    box(0.4,0.48,0.08,white,0,1.72,0.27);
+    for(let i=-1;i<=1;i++) box(0.04,0.1,0.02,black,i*0.1,1.76,0.32);
+    for(let i=-1;i<=1;i++) box(0.04,0.1,0.02,black,i*0.1,1.62,0.32);
+    box(0.4,0.04,0.02,mat(0xcc1f2e),0,1.9,0.32);
+  } else if(id==='gas'){
+    box(0.34,0.24,0.1,mat(0x3d4a3a),0,1.66,0.27);
+    const f = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.14,12), mat(0x222222));
+    f.rotation.x = Math.PI/2; f.position.set(0,1.62,0.38); g.add(f);
+    box(0.4,0.1,0.08,mat(0x66ffe0,0x22ccaa),0,1.79,0.27);
+  } else if(id==='demon'){
+    const red = mat(0xb01020,0x550008);
+    box(0.42,0.38,0.08,red,0,1.72,0.27);
+    box(0.08,0.05,0.02,mat(0xffee55,0xffee55),-0.1,1.78,0.32); box(0.08,0.05,0.02,mat(0xffee55,0xffee55),0.1,1.78,0.32);
+    box(0.22,0.04,0.02,black,0,1.62,0.32);
+    [-1,1].forEach(sx=>{
+      const h = new THREE.Mesh(new THREE.ConeGeometry(0.06,0.26,8), mat(0x220000));
+      h.position.set(sx*0.17,2.0,0.02); h.rotation.z = -sx*0.3; g.add(h);
+    });
+  }
+  return g;
+}
+function applyGearToBody(body){
+  if(body.userData.gearGroup){ body.remove(body.userData.gearGroup); }
+  const gg = new THREE.Group();
+  if(profile.mask !== 'none') gg.add(buildMask(profile.mask));
+  const gl = GLOVES[profile.glove];
+  if(gl && profile.glove !== 'none'){
+    const m = new THREE.MeshStandardMaterial({color:gl.color, roughness:0.45, emissive:gl.color, emissiveIntensity:0.25});
+    [-1,1].forEach(sx=>{
+      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.21,0.22,0.21), m); hand.position.set(sx*0.45,0.7,0); gg.add(hand);
+      const cuff = new THREE.Mesh(new THREE.BoxGeometry(0.19,0.08,0.19), m); cuff.position.set(sx*0.45,0.84,0); gg.add(cuff);
+    });
+  }
+  body.add(gg); body.userData.gearGroup = gg;
+}
+function addFPGloves(weaponGroup, type){
+  if(profile.glove === 'none') return;
+  const gl = GLOVES[profile.glove]; if(!gl) return;
+  const m = new THREE.MeshStandardMaterial({color:gl.color, roughness:0.45, emissive:gl.color, emissiveIntensity:0.25});
+  const mk = (w,h,d,x,y,z)=>{ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); weaponGroup.add(o); };
+  if(type==='pistol'){ mk(0.1,0.16,0.14, 0,-0.2,0.18); mk(0.12,0.06,0.12, 0,-0.3,0.3); }
+  else {
+    mk(0.1,0.12,0.14, 0,-0.14,0.22); mk(0.12,0.06,0.12, 0,-0.22,0.34);
+    const fz = type==='sniper' ? -0.4 : (type==='shotgun' ? -0.35 : -0.3);
+    mk(0.11,0.11,0.16, 0,-0.08,fz); mk(0.13,0.06,0.12, 0,-0.16,fz+0.12);
+  }
+}
+function onGearChanged(){
+  saveProfile(profile);
+  applyGearToBody(playerBody);
+  if(currentMesh) equipWeapon(currentWeaponKey);
+  if(typeof rebuildLobbyPreviewBody==='function') rebuildLobbyPreviewBody();
+  renderGear(); renderArmory(); refreshProfileUI();
+}
+
+/* ---- armory / gear UI ---- */
+function itemCard(ico, name, desc, btnLabel, btnClass, onClick, equipped){
+  const c = document.createElement('div');
+  c.className = 'itemCard' + (equipped ? ' equipped' : '');
+  c.innerHTML = '<div class="ico">'+ico+'</div><div class="nm">'+name+'</div><div class="ds">'+desc+'</div><div class="itemBtn '+btnClass+'">'+btnLabel+'</div>';
+  c.querySelector('.itemBtn').addEventListener('click', onClick);
+  return c;
+}
+function renderArmory(){
+  const wg = document.getElementById('weaponShopGrid'); wg.innerHTML = '';
+  weaponOrder.forEach(k=>{
+    const w = WEAPONS[k], sh = WEAPON_SHOP[k];
+    const owned = profile.weaponsOwned.includes(k);
+    const isStart = profile.startWeapon === k;
+    const label = isStart ? '✔ START WEAPON' : (owned ? 'EQUIP AS START' : '🪙 '+sh.price);
+    const cls = isStart ? 'on' : (owned ? 'own' : (profile.coins>=sh.price?'':'no'));
+    wg.appendChild(itemCard(sh.icon, w.name, sh.desc+' · '+w.dmg+' dmg', label, cls, ()=>{
+      if(owned){ profile.startWeapon = k; }
+      else if(spendCoins(sh.price)){ profile.weaponsOwned.push(k); profile.startWeapon = k; }
+      else return;
+      saveProfile(profile); renderArmory(); refreshProfileUI();
+    }, isStart));
+  });
+  const ag = document.getElementById('ammoShopGrid'); ag.innerHTML = '';
+  Object.keys(AMMO_PACKS).forEach(k=>{
+    const a = AMMO_PACKS[k];
+    const banked = profile.ammoBank[k] || 0;
+    ag.appendChild(itemCard(k==='grenade'?'💣':'📦', a.label, '+'+a.qty+' per pack · stocked: '+banked,
+      '🪙 '+a.price, profile.coins>=a.price?'':'no', ()=>{
+        if(!spendCoins(a.price)) return;
+        profile.ammoBank[k] = banked + a.qty;
+        saveProfile(profile); renderArmory(); refreshProfileUI();
+      }, false));
+  });
+}
+function renderGear(){
+  const mg = document.getElementById('maskGrid'); mg.innerHTML = '';
+  Object.keys(MASKS).forEach(k=>{
+    const m = MASKS[k]; const owned = profile.masksOwned.includes(k); const eq = profile.mask===k;
+    mg.appendChild(itemCard(m.icon, m.name, m.armor? '+'+m.armor+' armor' : 'No bonus',
+      eq?'✔ EQUIPPED':(owned?'EQUIP':'🪙 '+m.price), eq?'on':(owned?'own':(profile.coins>=m.price?'':'no')), ()=>{
+        if(owned){ profile.mask = k; }
+        else if(spendCoins(m.price)){ profile.masksOwned.push(k); profile.mask = k; }
+        else return;
+        onGearChanged();
+      }, eq));
+  });
+  const gg = document.getElementById('gloveGrid'); gg.innerHTML = '';
+  Object.keys(GLOVES).forEach(k=>{
+    const gl = GLOVES[k]; const owned = profile.glovesOwned.includes(k); const eq = profile.glove===k;
+    gg.appendChild(itemCard(gl.icon, gl.name, gl.reload<1 ? Math.round((1-gl.reload)*100)+'% faster reload' : 'No bonus',
+      eq?'✔ EQUIPPED':(owned?'EQUIP':'🪙 '+gl.price), eq?'on':(owned?'own':(profile.coins>=gl.price?'':'no')), ()=>{
+        if(owned){ profile.glove = k; }
+        else if(spendCoins(gl.price)){ profile.glovesOwned.push(k); profile.glove = k; }
+        else return;
+        onGearChanged();
+      }, eq));
+  });
+}
+function refreshWeaponSlots(){
+  document.querySelectorAll('#weaponBar .slot[data-slot]').forEach(sl=>{
+    sl.classList.toggle('locked', !profile.weaponsOwned.includes(weaponOrder[parseInt(sl.dataset.slot)-1]));
+  });
+}
+function applyLoadout(){
+  weaponOrder.forEach(k=>{
+    if(!profile.weaponsOwned.includes(k)) weaponState[k] = {ammo:0, reserve:0};
+    else weaponState[k].reserve += (profile.ammoBank[k] || 0);
+    profile.ammoBank[k] = 0;
+  });
+  player.grenades = Math.min(player.maxGrenades, 3 + (profile.ammoBank.grenade || 0));
+  profile.ammoBank.grenade = 0;
+  saveProfile(profile);
+  refreshWeaponSlots();
+  equipWeapon(profile.weaponsOwned.includes(profile.startWeapon) ? profile.startWeapon : 'pistol');
 }
 
 /* =========================================================
@@ -1837,6 +2242,7 @@ let thirdPerson = false;
 const playerBody = buildEnemyMesh(-1, SKINS[getEquippedSkin()].color).group;
 playerBody.visible = false;
 scene.add(playerBody);
+applyGearToBody(playerBody);
 function refreshPlayerBodyColor(){
   const color = SKINS[getEquippedSkin()].color;
   playerBody.traverse(o=>{ if(o.isMesh && o.material && o.material.emissive) { o.material.color.setHex(color); o.material.emissive.setHex(color); } });
@@ -1862,6 +2268,7 @@ let lobbyPreviewBody = null;
 function rebuildLobbyPreviewBody(){
   if(lobbyPreviewBody) lobbyScene.remove(lobbyPreviewBody);
   lobbyPreviewBody = buildEnemyMesh(-1, SKINS[getEquippedSkin()].color).group;
+  applyGearToBody(lobbyPreviewBody);
   lobbyScene.add(lobbyPreviewBody);
 }
 rebuildLobbyPreviewBody();
@@ -2294,6 +2701,7 @@ function killEnemy(enemy){
   AudioSys.explode();
   scene.remove(enemy.group);
   score += enemy.scoreValue; kills += 1; player.wood += 15;
+  onKillReward();
   registerKillstreak();
   updateTopStats(); updateHudWeapon();
   pushKillFeed('☠ ' + ['Drone neutralized','Heavy unit destroyed','Elite unit eliminated'][enemy.tier] + '  +' + enemy.scoreValue);
@@ -2484,9 +2892,7 @@ function die(){
   const isNewBest = saveHighScore(score, wave, kills);
   document.getElementById('finalNewBest').classList.toggle('show', isNewBest);
   document.getElementById('gameOverOverlay').classList.remove('hidden');
-  const coinsEarned = Math.floor(score/10);
-  awardCoins(coinsEarned);
-  document.getElementById('coinsEarnedLine').textContent = '🪙 +' + coinsEarned + ' COINS EARNED';
+  document.getElementById('coinsEarnedLine').textContent = '🪙 +' + runCoins + ' COINS · ⭐ +' + (kills*KILL_XP) + ' XP EARNED  (LV ' + getLevel() + ')';
   clearTimeout(autoLobbyTimer);
   autoLobbyTimer = setTimeout(()=>{ if(gameState==='gameover') exitToLobby(); }, 10000);
 }
@@ -2510,7 +2916,7 @@ function reloadDeath(){
       if(gameState!=='playing') return;
       const sp = randomSpawn();
       camera.position.set(sp.x, player.height, sp.z);
-      player.health = player.maxHealth; player.armor = 60; player.alive = true;
+      player.health = player.maxHealth; player.armor = 60 + maskArmor(); player.alive = true;
       updateHealthHud();
     }, 2200);
   } else {
@@ -2690,7 +3096,7 @@ function processIncoming(data){
     case 'hit': { if(data.targetId === net.myId){ damagePlayer(data.dmg, data.byId, data.byName); } break; }
     case 'death': {
       pushKillFeed((data.killerName||'Someone') + ' eliminated ' + (data.victimName||'a player'), '#ff3860');
-      if(data.killerId === net.myId){ score += 100; kills += 1; player.wood += 20; registerKillstreak(); updateTopStats(); updateHudWeapon(); }
+      if(data.killerId === net.myId){ score += 100; kills += 1; player.wood += 20; onKillReward(); registerKillstreak(); updateTopStats(); updateHudWeapon(); }
       if(data.victimId === net.myId) resetKillstreak();
       if(remotePlayers[data.victimId]){ remotePlayers[data.victimId].alive = false; remotePlayers[data.victimId].group.visible=false; }
       break;
@@ -2708,7 +3114,7 @@ function onlineDeath(byId, byName){
     if(gameState!=='playing') return;
     const sp = randomSpawn();
     camera.position.set(sp.x, player.height, sp.z);
-    player.health = player.maxHealth; player.armor = 60; player.alive = true;
+    player.health = player.maxHealth; player.armor = 60 + maskArmor(); player.alive = true;
     updateHealthHud();
   }, 3000);
 }
@@ -2829,7 +3235,7 @@ function resetGame(){
   document.getElementById('buildBar').classList.remove('show');
   document.getElementById('weaponBar').classList.remove('hide');
 
-  player.health = player.maxHealth; player.armor = 60; player.alive = true; player.wood = 200; player.stamina = player.maxStamina; player.grenades = 3;
+  player.health = player.maxHealth; player.armor = 60 + maskArmor(); player.alive = true; player.wood = 200; player.stamina = player.maxStamina; player.grenades = 3;
   player.lives = RELOAD_MAX_LIVES;
   for(const pk of pickups){ pk.alive = true; pk.mesh.visible = true; pk.respawnTimer = 0; }
   const sp = onlineMode ? randomSpawn() : new THREE.Vector3(0,0,5);
@@ -2837,7 +3243,8 @@ function resetGame(){
   camera.rotation.set(0,0,0);
   wave = 1; score = 0; kills = 0;
   weaponOrder.forEach(k=>{ weaponState[k] = {ammo:WEAPONS[k].mag, reserve:WEAPONS[k].reserve}; });
-  equipWeapon('pistol');
+  runCoins = 0;
+  applyLoadout();
   updateHealthHud(); updateStaminaHud(); updateTopStats();
   if(onlineMode) document.getElementById('waveLbl').textContent = 'PLAYERS';
   else if(gameMode==='reload'){ document.getElementById('waveLbl').textContent = 'LIVES'; updateReloadHud(); }
@@ -2964,8 +3371,12 @@ function showLobbyTab(tab){
   document.getElementById('shopPanel').style.display = tab==='shop' ? 'block' : 'none';
   document.getElementById('lockerPanel').style.display = tab==='locker' ? 'block' : 'none';
   document.getElementById('battlePassPanel').style.display = tab==='battlepass' ? 'block' : 'none';
+  document.getElementById('armoryPanel').style.display = tab==='armory' ? 'block' : 'none';
+  document.getElementById('gearPanel').style.display = tab==='gear' ? 'block' : 'none';
+  document.getElementById('profilePanel').style.display = tab==='profile' ? 'block' : 'none';
   document.getElementById('lobbyTabs').style.display = 'flex';
-  document.getElementById('lobbyPreviewCanvas').style.display = (tab==='play' || tab==='locker') ? 'block' : 'none';
+  document.getElementById('lobbyPreviewCanvas').style.display = (tab==='play' || tab==='locker' || tab==='gear') ? 'block' : 'none';
+  renderArmory(); renderGear(); refreshProfileUI();
   document.getElementById('onlinePanel').classList.remove('show');
   if(tab==='locker' || tab==='battlepass' || tab==='shop') refreshShopUI();
   if(tab==='shop') refreshServerBalance();
@@ -2973,6 +3384,7 @@ function showLobbyTab(tab){
 document.querySelectorAll('.lobbyTab').forEach(btn=>{
   btn.addEventListener('click', ()=> showLobbyTab(btn.dataset.tab));
 });
+renderArmory(); renderGear(); refreshProfileUI(); refreshWeaponSlots();
 document.getElementById('onlineModeBtn').addEventListener('click', ()=>{
   document.getElementById('lobbyTabs').style.display = 'none';
   document.getElementById('lobbyPreviewCanvas').style.display = 'none';
